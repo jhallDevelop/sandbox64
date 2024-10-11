@@ -10,7 +10,9 @@ Libdragon rendering functions
 #include <GL/gl_integration.h>
 #include <rspq_profile.h>
 #include "Cube.h"
+#include "Plane.h"
 #include "Camera.h"
+#include "CTransform.h"
 #define DEBUG_RDP 0
 
 
@@ -78,11 +80,16 @@ static inline void Renderer_Init(void){
 
     rspq_profile_start();
 
+    setup_cube();
+
+    setup_plane();
+    make_plane_mesh();
+
 
 }
 // Update Renderer
-
-static inline void Renderer_Update(void){
+// TODO: take in an array of entities 
+static inline void Renderer_Update(const CTransform* _transform){
     // Get the display and z buffer 
     surface_t *disp = display_get();
     surface_t *zbuf = display_get_zbuf();
@@ -114,8 +121,8 @@ static inline void Renderer_Update(void){
     //glBindTexture(GL_TEXTURE_2D, textures[texture_index]);
     
     // Render Shapes
-    //render_plane();
-    render_cube();
+    render_plane();
+    render_cube(_transform);
     // bind the textures
     //glBindTexture(GL_TEXTURE_2D, textures[(texture_index + 1)%4]);
     //glDisable(GL_TEXTURE_2D);

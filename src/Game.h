@@ -5,10 +5,10 @@ Game also will take in ECS Entities and then apply gameplay to those.
 
 #ifndef GAME_H
 #define GAME_H
-
+#include "CTransform.h"
 void Game_Awake(void);
 void Game_Start(void);
-void Game_Update(void);
+void Game_Update(const CTransform* _transform);
 void Game_Shutdown(void);
 
 #endif
