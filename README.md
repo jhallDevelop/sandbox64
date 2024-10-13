@@ -1,6 +1,9 @@
 # sandbox64
 Sandbox area to run experiments using libdragon for n64 game development
+[![Project Screenshot](./sandbox64.png)](./sandbox64.mp4)  
 
+
+## Installation Instructions  
 1\. Installing libdragon and dependencies
 =========================================
 
