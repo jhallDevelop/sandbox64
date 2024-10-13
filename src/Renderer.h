@@ -26,7 +26,7 @@ static uint64_t frames = 0;
 static GLenum shade_model = GL_SMOOTH;
 static bool fog_enabled = false;
 
-static const GLfloat environment_color[] = { 0.85f, 0.85f, 0.85f, 1.f };
+static const GLfloat environment_color[] = { 0.2f, 0.2f, 0.2f, 1.f };
 
 
 
