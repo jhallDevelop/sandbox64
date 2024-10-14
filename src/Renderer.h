@@ -12,7 +12,7 @@ Libdragon rendering functions
 #include "Cube.h"
 #include "Plane.h"
 #include "Camera.h"
-#include "CTransform.h"
+#include "ECS/Entities/AF_ECS.h"
 #define DEBUG_RDP 0
 
 
@@ -31,9 +31,12 @@ static const GLfloat environment_color[] = { 0.2f, 0.2f, 0.2f, 1.f };
 
 
 // Init Rendering
-static inline void Renderer_Init(void){
+static inline void Renderer_Init(AF_ECS* _ecs){
 
-    
+   	if(_ecs == NULL){
+		debugf("Renderer: Renderer_Init has null ecs referenced passed in \n");
+		return;
+	} 
 	debugf("InitRendering\n");
 	// Set ??
     dfs_init(DFS_DEFAULT_LOCATION);
@@ -89,7 +92,11 @@ static inline void Renderer_Init(void){
 }
 // Update Renderer
 // TODO: take in an array of entities 
-static inline void Renderer_Update(const CTransform* _transform){
+static inline void Renderer_Update(AF_ECS* _ecs){
+	if(_ecs == NULL){
+		debugf("Renderer: Renderer_Update has null ecs referenced passed in \n");
+		return;
+	} 
     // Get the display and z buffer 
     surface_t *disp = display_get();
     surface_t *zbuf = display_get_zbuf();
@@ -122,7 +129,7 @@ static inline void Renderer_Update(const CTransform* _transform){
     
     // Render Shapes
     render_plane();
-    render_cube(_transform);
+    //render_cube(_transform);
     // bind the textures
     //glBindTexture(GL_TEXTURE_2D, textures[(texture_index + 1)%4]);
     //glDisable(GL_TEXTURE_2D);
