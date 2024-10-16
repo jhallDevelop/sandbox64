@@ -1,12 +1,14 @@
 #include "App.h"
 #include <stdio.h>
 #include <libdragon.h>
-#include "Renderer.h"
+#include "AF_Renderer.h"
 #include "Game.h"
-#include "Input.h"
+#include "AF_Input.h"
+#include "AF_Physics.h"
+
 AppData appData;
 AF_ECS ecs;
-
+AF_Input input;
 void App_Init(const uint16_t _windowWidth, const uint16_t _windowHeight){
     debugf("App_Init\n");
 
@@ -23,16 +25,13 @@ void App_Init(const uint16_t _windowWidth, const uint16_t _windowHeight){
     // Init the ECS system
     AF_ECS_Init(&ecs);
 
-
-
     // Init Input
-    Input_Init(&ecs);
-
+    AF_Input_Init();
+    AF_Physics_Init(&ecs);
     // Init Rendering
-    Renderer_Init(&ecs); 
+    AF_Renderer_Init(&ecs); 
     Game_Awake(&ecs);
     Game_Start(&ecs);
-
 }
 
 
@@ -40,18 +39,25 @@ void App_Update(void){
     //debugf("App_Update\n");
     //print to the screen
     // TODO: get input to retrun a struct of buttons pressed/held
-    Input_Update(&ecs);
+    AF_Input_Update(&input);
 
     // TODO: pass input and ECS structs to the game to apply game logic
-    Game_Update(&ecs);
+    Game_Update(&input, &ecs);
+
+    // Physics
+    AF_Physics_Update(&ecs);
 
     // TODO: Pass ECS entities to renderer to render them
-    Renderer_Update(&ecs);
+    AF_Renderer_Update(&ecs);
 }
 
 void App_Shutdown(void){
-        debugf("App_Shutdown\n");
-	Game_Shutdown();
-	Renderer_Shutdown();
-	Input_Shutdown();	
+	debugf("App_Shutdown\n");
+       	Game_Shutdown();
+	AF_Renderer_Shutdown();
+	AF_Physics_Shutdown();
+	AF_Input_Shutdown();	
+	//AF_ECS_Shutdown();
+
 }
+

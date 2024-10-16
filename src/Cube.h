@@ -4,7 +4,7 @@
 #include <libdragon.h>
 #include <GL/gl.h>
 #include "Vertex.h"
-#include "CTransform.h"
+#include "ECS/Components/AF_CTransform3D.h"
 static const float cube_size = 3.0f;
 
 static const vertex_t cube_vertices[] = {
@@ -78,7 +78,7 @@ void draw_cube()
     glDisableClientState(GL_COLOR_ARRAY);
 }
 
-void render_cube(const CTransform* _transform)
+void render_cube(const AF_CTransform3D* _transform)
 {
     rdpq_debug_log_msg("Cube");
     glPushMatrix();
@@ -87,7 +87,7 @@ void render_cube(const CTransform* _transform)
 	debugf("Renderer Update: Trying to render a cube with a null transform\n");
 	return;
 	}
-    glTranslatef(_transform->position[0], _transform->position[1], _transform->position[2]);
+    glTranslatef(_transform->pos.x, _transform->pos.y, _transform->pos.z);
 
     // Apply vertex color as material color.
     // Because the cube has colors set per vertex, we can color each face seperately

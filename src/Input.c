@@ -1,24 +1,19 @@
 /*================
+Implementation file for AF_Input
+Specific to n64
 Input contains everything needed to collect input from the system and feed it back into the game
 =================*/
-#ifndef INPUT_H
-#define INPUT_H
 #include <libdragon.h>
-#include "ECS/Entities/AF_ECS.h"
-#define STICK_DEAD_ZONE 0.01
-static inline void Input_Init(AF_ECS* _ecs){
-	if(_ecs == NULL){
-		debugf("Input: Input_Init pass in a null reference to _ecs\n");
-		return;
-	}
+#include "AF_Input.h"
+
+void AF_Input_Init(){
 	debugf("Input Init\n");
 	joypad_init();
-
 }
 
-static inline void Input_Update(AF_ECS* _ecs){
-	if(_ecs == NULL){
-		debugf("Input: Input_Update: passed in a null reference to _ecs\n");
+void AF_Input_Update(AF_Input* _input){
+	if(_input == NULL){
+		debugf("Input: Input_Update: passed in a null reference to input\n");
 		return;
 	}
 	joypad_poll();
@@ -70,51 +65,10 @@ static inline void Input_Update(AF_ECS* _ecs){
 
         float y = inputs.stick_y / 128.f;
         float x = inputs.stick_x / 128.f;
-	int vecX = 0;
-	int vecY = 0;
-	if (y > STICK_DEAD_ZONE){
-		vecY = -1;
-		debugf("Stick y %f:\n",y);
-	}
-	if(y < -STICK_DEAD_ZONE){
-		vecY = 1;
-		debugf("Stick y %f:\n",y);
-	}
-
-
-	if(x > STICK_DEAD_ZONE){
-		debugf("Stick y %f:\n",y);
-		vecX = 1;
-	}
-	if(x < -STICK_DEAD_ZONE ){
-		debugf("Stick x %f:\n",x);
-		vecX = -1;
-	}
-
-	if(x == 0){
-		vecX = 0;
-	}
-
-	if(y == 0){
-		vecY = 0;
-	}
-
-	// update the transform
-	//float updateX = _transform->position[0];
-	//float updateY = _transform->position[2];
-
-	// speed
-	//float speed = 0.1;
-	// apply velocity
-	//updateX += speed * vecX;
-	//updateY += speed * vecY;
-
-	//update the transform
-	//_transform->position[0] = updateX;
-	//_transform->position[2] = updateY;
+	_input->stick_x = x;
+	_input->stick_y = y;	
 }
 
-static inline void Input_Shutdown(void){
+void AF_Input_Shutdown(void){
 	debugf("Input Shutdown\n");
 }
-#endif

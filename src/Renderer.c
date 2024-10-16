@@ -1,14 +1,16 @@
 /*================
-Libdragon rendering functions
+Implementation of AF_Renderer
+n64 Libdragon rendering functions
 
 
 ==================*/
-#ifndef RENDERER_H
-#define RENDERER_H
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/gl_integration.h>
 #include <rspq_profile.h>
+
+#include "AF_Renderer.h"
+
 #include "Cube.h"
 #include "Plane.h"
 #include "Camera.h"
@@ -31,7 +33,7 @@ static const GLfloat environment_color[] = { 0.2f, 0.2f, 0.2f, 1.f };
 
 
 // Init Rendering
-static inline void Renderer_Init(AF_ECS* _ecs){
+void AF_Renderer_Init(AF_ECS* _ecs){
 
    	if(_ecs == NULL){
 		debugf("Renderer: Renderer_Init has null ecs referenced passed in \n");
@@ -92,7 +94,7 @@ static inline void Renderer_Init(AF_ECS* _ecs){
 }
 // Update Renderer
 // TODO: take in an array of entities 
-static inline void Renderer_Update(AF_ECS* _ecs){
+void AF_Renderer_Update(AF_ECS* _ecs){
 	if(_ecs == NULL){
 		debugf("Renderer: Renderer_Update has null ecs referenced passed in \n");
 		return;
@@ -129,7 +131,7 @@ static inline void Renderer_Update(AF_ECS* _ecs){
     
     // Render Shapes
     render_plane();
-    //render_cube(_transform);
+    render_cube(&_ecs->transforms[1]);
     // bind the textures
     //glBindTexture(GL_TEXTURE_2D, textures[(texture_index + 1)%4]);
     //glDisable(GL_TEXTURE_2D);
@@ -172,7 +174,6 @@ static inline void Renderer_Update(AF_ECS* _ecs){
 
 }
 // Shutdown Renderer
-static inline void Renderer_Shutdown(void){
+void AF_Renderer_Shutdown(void){
 
 }
-#endif
