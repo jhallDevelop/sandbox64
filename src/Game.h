@@ -10,6 +10,8 @@ Game also will take in ECS Entities and then apply gameplay to those.
 void Game_Awake(AF_ECS* _ecs);
 void Game_Start(AF_ECS* _ecs);
 void Game_Update(AF_Input* _input, AF_ECS* _ecs);
+void Game_LateUpdate(AF_ECS* _ecs);
+
 void Game_Shutdown(void);
 
 #endif

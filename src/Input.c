@@ -21,15 +21,21 @@ void AF_Input_Update(AF_Input* _input){
         joypad_buttons_t held = joypad_get_buttons_held(JOYPAD_PORT_1);
         joypad_inputs_t inputs = joypad_get_inputs(JOYPAD_PORT_1);
 
+		// flush the keys
+		for(int i = 0; i < AF_INPUT_KEYS_MAPPED; ++i){
+			_input->keys[i].pressed = FALSE;
+		}
 	// Held
         if (held.a) {
 		debugf("Input A Button Held\n");
+		_input->keys[0].pressed = TRUE;
             //animation++;
         }
 
         if (held.b) {
         
 		debugf("Input B Button Held\n");
+		_input->keys[1].pressed = TRUE;
 	}
 	
 	if (held.r) {

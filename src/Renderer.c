@@ -18,6 +18,7 @@ n64 Libdragon rendering functions
 #define DEBUG_RDP 0
 
 
+
 // Global Camera
 static camera_t camera;
 
@@ -29,6 +30,8 @@ static GLenum shade_model = GL_SMOOTH;
 static bool fog_enabled = false;
 
 static const GLfloat environment_color[] = { 0.2f, 0.2f, 0.2f, 1.f };
+// Define the RGBA values for the ambient light (e.g., soft white light)
+static const GLfloat ambientLight[] = {0.75f, 0.75f, 0.75f, 1.0f};  // R, G, B, A
 
 
 
@@ -58,7 +61,7 @@ void AF_Renderer_Init(AF_ECS* _ecs){
 
 
     // Setup camera things
-    camera.distance = -10.0f;
+    camera.distance = -12.0f;
     camera.rotation = 0.0f;
     float aspect_ratio = (float)display_get_width() / (float)display_get_height();
     float near_plane = 1.0f;
@@ -67,6 +70,20 @@ void AF_Renderer_Init(AF_ECS* _ecs){
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glFrustum(-near_plane*aspect_ratio, near_plane*aspect_ratio, -near_plane, near_plane, near_plane, far_plane);
+
+    // Retrieve the projection matrix
+    // Define the projection matrix manually
+    float projectionMatrix[16] = {
+        near_plane / (aspect_ratio * near_plane), 0, 0, 0,
+        0, near_plane / near_plane, 0, 0,
+        0, 0, -(far_plane + near_plane) / (far_plane - near_plane), -1,
+        0, 0, -(2 * far_plane * near_plane) / (far_plane - near_plane), 0
+    };
+
+    // Now you can use projectionMatrix as needed
+    for (int i = 0; i < 16; i++) {
+        debugf("Projection Matrix [%d]: %f\n", i, projectionMatrix[i]);
+    }
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -81,16 +98,17 @@ void AF_Renderer_Init(AF_ECS* _ecs){
     glFogf(GL_FOG_END, 20);
     glFogfv(GL_FOG_COLOR, environment_color);
 
+    // set ambient light
+    // Set the global ambient light
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambientLight);
+
     glEnable(GL_MULTISAMPLE_ARB);
 
     rspq_profile_start();
-
     setup_cube();
 
     setup_plane();
     make_plane_mesh();
-
-
 }
 // Update Renderer
 // TODO: take in an array of entities 
@@ -130,8 +148,28 @@ void AF_Renderer_Update(AF_ECS* _ecs){
     //glBindTexture(GL_TEXTURE_2D, textures[texture_index]);
     
     // Render Shapes
-    render_plane();
-    render_cube(&_ecs->transforms[1]);
+    if(_ecs->meshes[2].enabled){
+        render_cube(&_ecs->transforms[2]);
+    }
+    if(_ecs->meshes[3].enabled){
+        render_plane(&_ecs->transforms[3]);
+    }
+
+    // loop through the objects to render
+    for(int i = 0; i < _ecs->entitiesCount; ++i){
+        // show debug
+        AF_CMesh* mesh = &_ecs->meshes[i];
+        if((AF_Component_GetHas(mesh->enabled) == TRUE) && (AF_Component_GetEnabled(mesh->enabled) == TRUE)){
+            // is debug on
+            if(mesh->showDebug == TRUE){
+                //render debug
+            }
+            // Render mesh
+        }
+
+        
+    }
+    //debugf("RenderCube: x: %f y: %f z: %f\n", _ecs->transforms[2].pos.x, _ecs->transforms[2].pos.y, _ecs->transforms[2].pos.z);
     // bind the textures
     //glBindTexture(GL_TEXTURE_2D, textures[(texture_index + 1)%4]);
     //glDisable(GL_TEXTURE_2D);
@@ -155,8 +193,13 @@ void AF_Renderer_Update(AF_ECS* _ecs){
     //glDisable(GL_RDPQ_TEXTURING_N64);
     //glDisable(GL_RDPQ_MATERIAL_N64);
 
-    gl_context_end();
+    
 
+}
+
+void AF_Renderer_Finish(){
+
+    gl_context_end();
     rdpq_detach_show();
 
     rspq_profile_next_frame();
@@ -164,15 +207,16 @@ void AF_Renderer_Update(AF_ECS* _ecs){
     if (((frames++) % 60) == 0) {
         rspq_profile_dump();
         rspq_profile_reset();
-        debugf("frame %lld\n", frames);
+        //debugf("frame %lld\n", frames);
     }
 
     // TODO: what does this do?
     if (DEBUG_RDP){
         rspq_wait();
     }
-
 }
+
+
 // Shutdown Renderer
 void AF_Renderer_Shutdown(void){
 

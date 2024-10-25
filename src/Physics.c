@@ -24,14 +24,13 @@ void AF_Physics_Update(AF_ECS* _ecs){
 		return;
 	}
 	// loop through and update all transforms based on their velocities
-	for(int i = 0; i < _ecs->entitiesCount; i++){
+	for(int i = 0; i < _ecs->entitiesCount; ++i){
 		//if(_ecs->rigidbodies[i].enabled == TRUE){
 			// update the transform based on the rigidbody
-			Vec3 vel = _ecs->rigidbodies[i].velocity;
-			Vec3 pos = _ecs->transforms[i].pos; 
-			Vec3 updatedPos = {pos.x + vel.x, pos.y + vel.y, pos.z + vel.z}; 
-			_ecs->transforms[i].pos = updatedPos;
-		//}
+			_ecs->transforms[i].pos = Vec3_ADD(_ecs->rigidbodies[i].velocity, _ecs->transforms[i].pos);
+
+			// update the bounds position
+			_ecs->colliders[i].pos = _ecs->transforms[i].pos;
 	}
 
 }

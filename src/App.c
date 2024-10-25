@@ -9,6 +9,12 @@
 AppData appData;
 AF_ECS ecs;
 AF_Input input;
+
+
+#define FRAME_BUFFER_SIZE 320*240*2
+display_context_t disp;
+char buffer[FRAME_BUFFER_SIZE];// = {0};
+
 void App_Init(const uint16_t _windowWidth, const uint16_t _windowHeight){
     debugf("App_Init\n");
 
@@ -29,7 +35,9 @@ void App_Init(const uint16_t _windowWidth, const uint16_t _windowHeight){
     AF_Input_Init();
     AF_Physics_Init(&ecs);
     // Init Rendering
+    
     AF_Renderer_Init(&ecs); 
+    
     Game_Awake(&ecs);
     Game_Start(&ecs);
 }
@@ -49,6 +57,9 @@ void App_Update(void){
 
     // TODO: Pass ECS entities to renderer to render them
     AF_Renderer_Update(&ecs);
+    //AF_Renderer_Debug();
+    Game_LateUpdate(&ecs);
+    AF_Renderer_Finish(); 
 }
 
 void App_Shutdown(void){
