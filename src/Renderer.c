@@ -34,6 +34,8 @@ static const GLfloat environment_color[] = { 0.2f, 0.2f, 0.2f, 1.f };
 static const GLfloat ambientLight[] = {0.75f, 0.75f, 0.75f, 1.0f};  // R, G, B, A
 
 
+// forward declare
+void InfrequenceGLEnable(void);
 
 // Init Rendering
 void AF_Renderer_Init(AF_ECS* _ecs){
@@ -109,6 +111,21 @@ void AF_Renderer_Init(AF_ECS* _ecs){
 
     setup_plane();
     make_plane_mesh();
+
+    InfrequenceGLEnable();
+
+    rdpq_set_mode_standard();
+    rdpq_mode_filter(FILTER_BILINEAR);
+}
+
+// Infrequence opengl calls that don't need to happen unless updating something important.
+void InfrequenceGLEnable(void){
+    // Set some global render modes that we want to apply to all models
+    // Enable opengl things
+    glEnable(GL_LIGHTING);
+    glEnable(GL_NORMALIZE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 }
 // Update Renderer
 // TODO: take in an array of entities 
@@ -137,34 +154,36 @@ void AF_Renderer_Update(AF_ECS* _ecs){
     camera_transform(&camera);
 
     
-    // Set some global render modes that we want to apply to all models
-    // Enable opengl things
     glEnable(GL_LIGHTING);
-    glEnable(GL_NORMALIZE);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
 
     //glEnable(GL_TEXTURE_2D);
     //glBindTexture(GL_TEXTURE_2D, textures[texture_index]);
     
-    // Render Shapes
-    if(_ecs->meshes[2].enabled){
-        render_cube(&_ecs->transforms[2]);
-    }
-    if(_ecs->meshes[3].enabled){
-        render_plane(&_ecs->transforms[3]);
-    }
+    
 
     // loop through the objects to render
+    // TODO: on the CPU, compbine all similar meshes with the same material and render in less draw calls
     for(int i = 0; i < _ecs->entitiesCount; ++i){
         // show debug
         AF_CMesh* mesh = &_ecs->meshes[i];
         if((AF_Component_GetHas(mesh->enabled) == TRUE) && (AF_Component_GetEnabled(mesh->enabled) == TRUE)){
+            
             // is debug on
             if(mesh->showDebug == TRUE){
                 //render debug
             }
             // Render mesh
+
+            // Render Shapes
+            if(_ecs->colliders[i].type == AABB){
+                render_cube(&_ecs->transforms[i]);
+            }
+            if(_ecs->colliders[i].type == Plane){
+                
+                render_plane(&_ecs->transforms[i]);
+            }
+        }else{
+            
         }
 
         
@@ -186,8 +205,8 @@ void AF_Renderer_Update(AF_ECS* _ecs){
     // since we are using bilinear texture filtering
     //glTexSizeN64(32, 32);
     //rdpq_sprite_upload(TILE0, sprites[0], &(rdpq_texparms_t){.s.repeats = REPEAT_INFINITE, .t.repeats = REPEAT_INFINITE});
-    rdpq_set_mode_standard();
-    rdpq_mode_filter(FILTER_BILINEAR);
+    //rdpq_set_mode_standard();
+    //rdpq_mode_filter(FILTER_BILINEAR);
 
     // Disable texturing
     //glDisable(GL_RDPQ_TEXTURING_N64);
@@ -198,20 +217,22 @@ void AF_Renderer_Update(AF_ECS* _ecs){
 }
 
 void AF_Renderer_Finish(){
-
+    // Tell opengl to finish up
     gl_context_end();
+    // present the frame
     rdpq_detach_show();
 
-    rspq_profile_next_frame();
+    
 
-    if (((frames++) % 60) == 0) {
-        rspq_profile_dump();
-        rspq_profile_reset();
-        //debugf("frame %lld\n", frames);
-    }
-
-    // TODO: what does this do?
+    // For debugging
     if (DEBUG_RDP){
+        rspq_profile_next_frame();
+
+        if (((frames++) % 60) == 0) {
+            rspq_profile_dump();
+            rspq_profile_reset();
+            //debugf("frame %lld\n", frames);
+        }
         rspq_wait();
     }
 }

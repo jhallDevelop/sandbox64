@@ -8,7 +8,8 @@ int main(void){
 
     // Main game loop
     while(1) {
-        App_Update();
+        // render stuff as fast as possible, interdependent from other code
+        App_Render_Update();
     }
 
     // Do Shutdown things
