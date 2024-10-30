@@ -27,45 +27,45 @@ void AF_Input_Update(AF_Input* _input){
 		}
 	// Held
         if (held.a) {
-		debugf("Input A Button Held\n");
+		//debugf("Input A Button Held\n");
 		_input->keys[0].pressed = TRUE;
             //animation++;
         }
 
         if (held.b) {
         
-		debugf("Input B Button Held\n");
+		//debugf("Input B Button Held\n");
 		_input->keys[1].pressed = TRUE;
 	}
 	
 	if (held.r) {
-		debugf("Input R Button Held\n");
+		//debugf("Input R Button Held\n");
             //animation++;
         }
 
         if (held.z) {
         
-		debugf("Input z Button Held\n");
+		//debugf("Input z Button Held\n");
 	}
 
 	// Pressed
 	if (pressed.a) {
-		debugf("Input A Button Pressed\n");
+		//debugf("Input A Button Pressed\n");
         }
 
         if (pressed.b) {
         
-		debugf("Input B Button Pressed\n");
+		//debugf("Input B Button Pressed\n");
 	}
 
 
         if (pressed.start) {
-		debugf("Input Start Button pressed\n");
+		//debugf("Input Start Button pressed\n");
         }
 
 
         if (pressed.r) {
-		debugf("Input R Button pressed\n");
+		//debugf("Input R Button pressed\n");
         }
 
 

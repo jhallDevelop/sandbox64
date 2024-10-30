@@ -5,6 +5,8 @@
 #include "Game.h"
 #include "AF_Input.h"
 #include "AF_Physics.h"
+// UFNLoader for n64
+#include "debug.h"
 
 AppData appData;
 AF_ECS ecs;
@@ -25,6 +27,9 @@ uint64_t currentTime = 0;
 void App_Update_Wrapper(int _ovfl);
 
 void App_Init(const uint16_t _windowWidth, const uint16_t _windowHeight){
+    debug_initialize();
+    debug_printf("USB UFNLoader Enabled!\n");
+
     debugf("App_Init\n");
 
     //Initialise the app data structure

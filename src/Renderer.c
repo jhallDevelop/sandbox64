@@ -26,8 +26,8 @@ static camera_t camera;
 static uint64_t frames = 0;
 
 // Global shader settings
-static GLenum shade_model = GL_SMOOTH;
-static bool fog_enabled = false;
+//static GLenum shade_model = GL_SMOOTH;
+//static bool fog_enabled = false;
 
 static const GLfloat environment_color[] = { 0.2f, 0.2f, 0.2f, 1.f };
 // Define the RGBA values for the ambient light (e.g., soft white light)

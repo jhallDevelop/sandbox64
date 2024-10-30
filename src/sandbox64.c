@@ -15,6 +15,4 @@ int main(void){
     // Do Shutdown things
     App_Shutdown();
 
-   
-
 }
