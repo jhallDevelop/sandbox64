@@ -1,6 +1,11 @@
 # sandbox64
-Sandbox area to run experiments using libdragon for n64 game development
-[![Project Screenshot](./sandbox64.png)](./sandbox64.mp4)  
+Sandbox area to run experiments using libdragon for n64 game development  
+FEATURES:  
+ - 3D rendering
+ - Basic Rigidbody Collisions and Physics
+ - Sound
+ - Font
+[![Project Screenshot](./video/sandbox64_30_10_24.png)](./video/LinearCollision_Velocity_gravity_27_10_24.mov)  
 
 
 ## Installation Instructions  
