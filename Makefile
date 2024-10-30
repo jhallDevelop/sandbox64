@@ -4,6 +4,8 @@ NAME = sandbox64
 BUILD_DIR = build
 SOURCE_DIR = src
 SRC = $(wildcard $(SOURCE_DIR)/*.c)
+#Includes
+CFLAGS = -Ilibs/AF_Math/include -Ilibs/AF_Lib/include
 
 include $(N64_INST)/include/n64.mk
 
