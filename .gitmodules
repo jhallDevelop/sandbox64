@@ -2,3 +2,9 @@
 	path = libdragon
 	url = https://github.com/DragonMinded/libdragon
 	branch = trunk
+[submodule "libs/AF_Math"]
+	path = libs/AF_Math
+	url = https://github.com/jhallDevelop/AF_Math.git
+[submodule "libs/AF_Lib"]
+	path = libs/AF_Lib
+	url = https://github.com/jhallDevelop/AF_Lib.git

@@ -7,7 +7,7 @@
 
 #include "vertex.h"
 
-#define PLANE_SIZE       20.0f
+#define PLANE_SIZE       40.0f
 #define PLANE_SEGMENTS   16
 
 static GLuint plane_buffers[2];
@@ -112,11 +112,22 @@ void draw_plane()
     glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
 }
 
-void render_plane()
+void render_plane(AF_CTransform3D* _transform)
 {
+    glPushMatrix();
+
+    if(_transform == NULL){
+	debugf("Renderer Update: Trying to render a cube with a null transform\n");
+	return;
+	}
+    glTranslatef(_transform->pos.x, _transform->pos.y, _transform->pos.z);
+
     rdpq_debug_log_msg("Plane");
 
     draw_plane();
+
+
+    glPopMatrix();
 }
 
 #endif
