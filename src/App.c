@@ -5,6 +5,7 @@
 #include "Game.h"
 #include "AF_Input.h"
 #include "AF_Physics.h"
+#include "AF_UI.h"
 // UFNLoader for n64
 #include "debug.h"
 
@@ -23,8 +24,12 @@ uint64_t lastTime =0;
 float deltaTime = 0.0f;
 uint64_t currentTime = 0;
 
+float frameMeasure;
+float updateMeasure;
+
 // forward declare
 void App_Update_Wrapper(int _ovfl);
+float App_Measure(void (*func)(int, ...), int num_args, ...);
 
 void App_Init(const uint16_t _windowWidth, const uint16_t _windowHeight){
     debug_initialize();
@@ -53,10 +58,16 @@ void App_Init(const uint16_t _windowWidth, const uint16_t _windowHeight){
     AF_Physics_Init(&ecs);
     // Init Rendering
     
+    // 3D rendering
     AF_Renderer_Init(&ecs); 
+
+    
     
     Game_Awake(&ecs);
     Game_Start(&ecs);
+
+    // UI
+    AF_UI_Init(&ecs);
 
     // set framerate to target 60fp and call the app update function
     new_timer(TIMER_TICKS(1000000 / 60), TF_CONTINUOUS, App_Update_Wrapper);
@@ -64,6 +75,8 @@ void App_Init(const uint16_t _windowWidth, const uint16_t _windowHeight){
 
 void App_Update_Wrapper(int _ovfl){
     App_Update(&input, &ecs);
+    //App_Measure(App_Update,&input, &ecs);
+    //debugf("App_Update_Mesure(%f)\n", updateMeasure);
 }
 
 
@@ -102,13 +115,18 @@ void App_Update(AF_Input* _input, AF_ECS* _ecs){
     curTick++;
 }
 
+// Game Render Loop
+// NOTE: this is indipendent from the other update functions which are operating on CPU Tick
+// This render loop runs from a while loop in sandbox64.c
 void App_Render_Update(){
+    // Start Render loop
     AF_Renderer_Update(&ecs);
-    if(isDebug == TRUE){
+    //if(isDebug == TRUE){
         //AF_Physics_LateRenderUpdate(&ecs);
-    }
-     AF_Renderer_Finish(); 
-     curFrame++;
+    //}
+    // 
+    AF_Renderer_Finish(); 
+    curFrame++;
 }
 
 
@@ -116,9 +134,31 @@ void App_Shutdown(void){
 	debugf("App_Shutdown\n");
     Game_Shutdown();
 	AF_Renderer_Shutdown();
+    AF_UI_Renderer_Shutdown();
 	AF_Physics_Shutdown();
 	AF_Input_Shutdown();	
 	//AF_ECS_Shutdown();
 
 }
 
+// TODO: Get this working
+float App_Measure(void (*func)(int, ...), int num_args, ...)
+{
+    uint64_t diff = 0;
+    va_list args;
+    rspq_wait();
+    disable_interrupts();
+    uint32_t t0 = get_ticks();
+    // Initialize the argument list
+    va_start(args, num_args);
+        
+    // Call the function with the variable arguments
+    func(num_args, args);
+        
+    va_end(args);
+    uint32_t t1 = get_ticks();
+    enable_interrupts();
+    diff += t1-t0;
+    
+    return TIMER_MICROS(diff) / 16.0f;
+}
