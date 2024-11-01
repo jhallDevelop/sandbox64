@@ -8,6 +8,7 @@
 #include "AF_Ray.h"
 #include "AF_Physics.h"
 #include "AF_Audio.h"
+#include "AF_UI.h"
 
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -22,6 +23,7 @@ AF_Entity* cube2;
 AF_Entity* trigger1;
 AF_Entity* plane;
 AF_Entity* camera;
+AF_Entity* animatedSprite;
 AF_Entity* textBlock;
 AF_Entity* laserSoundEntity;
 AF_Entity* cannonSoundEntity;
@@ -37,6 +39,9 @@ AF_Entity* musicTrackSoundEntity;
 const char* fontPath = "rom:/Pacifico.font64";
 const char* fontPath2 = "rom:/FerriteCoreDX.font64";
 const char* musicPath = "rom:/monosample8.wav64";
+
+// sprites
+const char* animatedSpritePath = "";
 
 // Sound
 // data type to hold special n64 data
@@ -59,6 +64,17 @@ const char *testText =
             "A pair of $02star-cross'd lovers$01 take their life;\n";
 
 
+// Sprite
+//Animation frame size defines
+#define ANIM_FRAME_W 120
+#define ANIM_FRAME_H 80
+
+//Animation frame timing defines
+#define ANIM_FRAME_DELAY 3
+#define ANIM_FRAME_MAX 6
+
+static sprite_t *sheet_knight;
+const char* sheet_knightPath = "rom:/knight.sprite";
 
 // forward decalred functions
 void HandleInput(AF_Input* _input, AF_ECS* _ecs);
@@ -66,8 +82,35 @@ void Game_DrawPhysics(AF_ECS* _ecs);
 void Game_SetupEntities(AF_ECS* _ecs);
 AF_Entity* CreateCube(AF_ECS* _ecs);
 AF_Entity* CreateAudioEntity(AF_ECS* _ecs, AF_AudioClip _audioClip, uint8_t _channel, void* _waveData, BOOL _isLooping);
+AF_Entity* CreateSprite(AF_ECS* _ecs, const char* _spritePath, Vec2 _screenPos, Vec2 _size, uint8_t _color[4], char _animationFrames, Vec2 _spriteSheetSize, void* _spriteData);
 void Game_OnTrigger(AF_Collision* _collision);
 
+
+AF_Entity* CreateSprite(AF_ECS* _ecs, const char* _spritePath, Vec2 _screenPos, Vec2 _size, uint8_t _color[4], char _animationFrames, Vec2 _spriteSheetSize, void* _spriteData){
+	AF_Entity* entity = AF_ECS_CreateEntity(_ecs);
+
+	AF_CSprite* sprite = entity->sprite;
+	*sprite = AF_CSprite_ADD();
+	sprite->spritePath = _spritePath;
+	sprite->pos = _screenPos;
+	sprite->size = _size;
+	// TODO: fix this
+	sprite->spriteColor[0] = _color[0];
+	sprite->spriteColor[1] = _color[1];
+	sprite->spriteColor[2] = _color[2];
+	sprite->spriteColor[3] = _color[3];
+	sprite->animationFrames = _animationFrames;
+	sprite->spriteSheetSize = _spriteSheetSize;
+
+	
+	//Load Sprite Sheet
+    sprite->spriteData = sprite_load(sprite->spritePath);
+	if(sprite->spriteData == NULL){
+		debugf("Game: CreateSprite: Failed to load sprite");
+		return NULL;
+	}
+	return entity;
+}
 
 AF_Entity* CreateCube(AF_ECS* _ecs){
 	AF_Entity* returnedCube = AF_ECS_CreateEntity(_ecs);
@@ -103,6 +146,7 @@ AF_Entity* CreateAudioEntity(AF_ECS* _ecs, AF_AudioClip _audioClip, uint8_t _cha
 	AF_Entity* returnEntity = AF_ECS_CreateEntity(_ecs);
 	*returnEntity->audioSource = AF_CAudioSource_ADD();
 
+
 	AF_CAudioSource* audioSource = returnEntity->audioSource;
 	audioSource->channel = _channel;
 	audioSource->loop = _isLooping;
@@ -115,6 +159,7 @@ AF_Entity* CreateAudioEntity(AF_ECS* _ecs, AF_AudioClip _audioClip, uint8_t _cha
 
 	wav64_open((wav64_t*)audioSource->clipData, audioSource->clip.clipPath);
 	wav64_set_loop((wav64_t*)audioSource->clipData, audioSource->loop);
+	
 
 	return returnEntity;
 }
@@ -127,6 +172,7 @@ void Game_Awake(AF_ECS* _ecs){
 	debugf("Game Awake\n");
 	
 	Game_SetupEntities(_ecs);
+	
 }
 
 void Game_Start(AF_ECS* _ecs){
@@ -168,13 +214,7 @@ void Game_Update(AF_Input* _input, AF_ECS* _ecs)
 		mixer_poll(buf, audio_get_buffer_length());
 		audio_write_end();
 	}*/
-
-	
-       
 }
-
-
-
 
 // used to run in-between render start and render end. 
 // Good for rendering debug data.
@@ -182,9 +222,7 @@ void Game_LateUpdate(AF_ECS* _ecs){
 	
 	//Game_DrawPhysics(_ecs);
 	//AF_Physics_DrawCollisions(_ecs);
-	
-	
-	
+
 }
 
 
@@ -236,6 +274,10 @@ void HandleInput(AF_Input* _input, AF_ECS* _ecs){
 
 		// play sound
 		AF_Audio_Play(laserSoundEntity->audioSource, 0.25f, FALSE);
+
+		// play animation
+		AF_UI_RendererSprite_Play(animatedSprite->sprite, FALSE);
+
 		
 	}else{
 		// turn off the visibility of meshes
@@ -347,6 +389,16 @@ void Game_SetupEntities(AF_ECS* _ecs){
 	Vec2 textBounds = {box_width, box_height};
     textBlock->text->screenPos = textScreenPos;
 	textBlock->text->textBounds = textBounds;
+
+	// Create sprites
+	Vec2 spritePos = {10, 20};
+	Vec2 spriteSize = {120, 80};
+	uint8_t spriteColor[4] = {255, 0, 0, 255};
+	Vec2 spriteSheetSize = {spriteSize.x *6,spriteSize.y * 1};
+	animatedSprite = CreateSprite(_ecs, sheet_knightPath, spritePos, spriteSize, spriteColor, 1, spriteSheetSize, (void*)sheet_knight);
+	animatedSprite->sprite->animationFrames = 6;
+	animatedSprite->sprite->animationSpeed = (1.0f) * 1000000; // Convert to microseconds if timer_ticks() is in microseconds ;		// about 33 milliseconds / 30fps
+	animatedSprite->sprite->loop = FALSE;
 }
 
 
@@ -400,10 +452,6 @@ void Game_Shutdown(void){
 }
 
 
-
-
-
-
 //// TODO: get rid of this
 void Game_DrawPhysics(AF_ECS* _ecs){
 	float green[4] = {0,255, 0, 1};
@@ -411,8 +459,6 @@ void Game_DrawPhysics(AF_ECS* _ecs){
 	float lightBlue[4] = {0,255, 255, 1};
 	
 	// Convert the position of the cube in world pos into screen pos
-
-
 	float distanceInfront = 10.0f;
 	Vec3 startPoint = {cube->transform->pos.x,cube->transform->pos.y - 2.5f,cube->transform->pos.z};
 	Vec3 justInFront = {startPoint.x, startPoint.y - distanceInfront, startPoint.z};
@@ -433,7 +479,6 @@ void Game_DrawPhysics(AF_ECS* _ecs){
 				if(_ecs->colliders[i].collision.collided == TRUE){
 					
 				}
-				
 		}
 	}
 	

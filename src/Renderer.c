@@ -130,7 +130,7 @@ void InfrequenceGLEnable(void){
 }
 // Update Renderer
 // TODO: take in an array of entities 
-void AF_Renderer_Update(AF_ECS* _ecs){
+void AF_Renderer_Update(AF_ECS* _ecs, AF_Time* _time){
 	if(_ecs == NULL){
 		debugf("Renderer: Renderer_Update has null ecs referenced passed in \n");
 		return;
@@ -170,7 +170,10 @@ void AF_Renderer_Update(AF_ECS* _ecs){
         }
 
         // Render UI
-        AF_UI_Renderer_Update(&_ecs->texts[i]);
+        // render sprites first
+        AF_UI_RendererSprite_Update(&_ecs->sprites[i], _time);
+        // render text
+        AF_UI_RendererText_Update(&_ecs->texts[i]);
     }
     //debugf("RenderCube: x: %f y: %f z: %f\n", _ecs->transforms[2].pos.x, _ecs->transforms[2].pos.y, _ecs->transforms[2].pos.z);
     // bind the textures

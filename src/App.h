@@ -7,13 +7,14 @@ App will handle communication between the main entry point, update, input, rende
 #include <stdint.h>
 #include "AF_Input.h"
 #include "ECS/Entities/AF_ECS.h"
+#include "AF_Time.h"
 typedef struct {
     uint16_t windowWidth;
     uint16_t windowHeight;
     
 }AppData;
-void App_Init(uint16_t _windowWidth,uint16_t _windowHeight);
-void App_Update(AF_Input* _input, AF_ECS* _ecs);
-void App_Render_Update(void);
+void App_Init(uint16_t _windowWidth,uint16_t _windowHeight, AF_Time* _time);
+void App_Update(AF_Input* _input, AF_ECS* _ecs, AF_Time* _time);
+void App_Render_Update(AF_Time* _time);
 void App_Shutdown(void);
 #endif

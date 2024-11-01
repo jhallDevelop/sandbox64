@@ -10,6 +10,8 @@ assets_png = $(wildcard assets/*.png)
 assets_conv = $(addprefix filesystem/,$(notdir $(assets:%.wav=%.wav64))) $(addprefix filesystem/,$(notdir $(assets_ttf:%.ttf=%.font64))) \
               $(addprefix filesystem/,$(notdir $(assets_png:%.png=%.sprite)))
 
+
+
 MKSPRITE_FLAGS ?=
 MKFONT_FLAGS ?=
 
@@ -32,6 +34,12 @@ filesystem/%.wav64: assets/%.wav
 	@mkdir -p $(dir $@)
 	@echo "    [AUDIO] $@"
 	@$(N64_AUDIOCONV) -o filesystem $<
+
+# Make sprites to be used for n64
+filesystem/%.sprite: assets/%.png
+	@mkdir -p $(dir $@)
+	@echo "    [SPRITE] $@"
+	@$(N64_MKSPRITE) $(MKSPRITE_FLAGS) -o filesystem "$<"
 
 
 

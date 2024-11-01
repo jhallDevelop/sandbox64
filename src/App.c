@@ -20,18 +20,18 @@ const BOOL isDebug = TRUE;
 float deltaTime;
 int32_t curTick = 0;
 int32_t curFrame = 0;
-uint64_t lastTime =0;
-float deltaTime = 0.0f;
-uint64_t currentTime = 0;
+
 
 float frameMeasure;
 float updateMeasure;
+
+AF_Time* timerPtr;
 
 // forward declare
 void App_Update_Wrapper(int _ovfl);
 float App_Measure(void (*func)(int, ...), int num_args, ...);
 
-void App_Init(const uint16_t _windowWidth, const uint16_t _windowHeight){
+void App_Init(const uint16_t _windowWidth, const uint16_t _windowHeight, AF_Time* _time){
     debug_initialize();
     debug_printf("USB UFNLoader Enabled!\n");
 
@@ -69,21 +69,25 @@ void App_Init(const uint16_t _windowWidth, const uint16_t _windowHeight){
     // UI
     AF_UI_Init(&ecs);
 
+    if(_time != NULL){
+        timerPtr = _time;
+    }else{
+        debugf("App: Init: recieved a null timer object\n");
+    }
+    
     // set framerate to target 60fp and call the app update function
     new_timer(TIMER_TICKS(1000000 / 60), TF_CONTINUOUS, App_Update_Wrapper);
 }
 
 void App_Update_Wrapper(int _ovfl){
-    App_Update(&input, &ecs);
+    App_Update(&input, &ecs, timerPtr);
     //App_Measure(App_Update,&input, &ecs);
     //debugf("App_Update_Mesure(%f)\n", updateMeasure);
 }
 
 
-void App_Update(AF_Input* _input, AF_ECS* _ecs){
-    currentTime = timer_ticks();
-    deltaTime = (float)(currentTime - lastTime)/ TICKS_PER_SECOND;
-    lastTime = currentTime;
+void App_Update(AF_Input* _input, AF_ECS* _ecs, AF_Time* _time){
+    
     //debugf("App_Update\n");
     //print to the screen
     // TODO: get input to retrun a struct of buttons pressed/held
@@ -95,7 +99,7 @@ void App_Update(AF_Input* _input, AF_ECS* _ecs){
     Game_Update(_input, _ecs);
 
     // Physics
-    AF_Physics_Update(_ecs, deltaTime);
+    AF_Physics_Update(_ecs, _time->timeSinceLastFrame);
 
     // late update for physics
     AF_Physics_LateUpdate(_ecs);
@@ -118,9 +122,9 @@ void App_Update(AF_Input* _input, AF_ECS* _ecs){
 // Game Render Loop
 // NOTE: this is indipendent from the other update functions which are operating on CPU Tick
 // This render loop runs from a while loop in sandbox64.c
-void App_Render_Update(){
+void App_Render_Update(AF_Time* _time){
     // Start Render loop
-    AF_Renderer_Update(&ecs);
+    AF_Renderer_Update(&ecs, _time);
     //if(isDebug == TRUE){
         //AF_Physics_LateRenderUpdate(&ecs);
     //}
