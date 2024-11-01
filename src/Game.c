@@ -7,16 +7,14 @@
 #include "AF_Util.h"
 #include "AF_Ray.h"
 #include "AF_Physics.h"
+#include "AF_Audio.h"
 
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/gl_integration.h>
 
 // Sounds
-// Mixer channel allocation
-#define CHANNEL_SFX1    0
-#define CHANNEL_SFX2    1
-#define CHANNEL_MUSIC   2
+
 
 // ECS system
 AF_Entity* cube;
@@ -24,12 +22,42 @@ AF_Entity* cube2;
 AF_Entity* trigger1;
 AF_Entity* plane;
 AF_Entity* camera;
+AF_Entity* textBlock;
+AF_Entity* laserSoundEntity;
+AF_Entity* cannonSoundEntity;
+AF_Entity* musicTrackSoundEntity;
 
-wav64_t sfx_cannon, sfx_laser, sfx_monosample;
+
 
 // define some const values
 #define STICK_DEAD_ZONE 0.01
 #define PLAYER_SPEED 20
+
+// Text / Font
+const char* fontPath = "rom:/Pacifico.font64";
+const char* fontPath2 = "rom:/FerriteCoreDX.font64";
+const char* musicPath = "rom:/monosample8.wav64";
+
+// Sound
+// data type to hold special n64 data
+wav64_t sfx_cannon, sfx_laser, sfx_music;
+// Mixer channel allocation
+#define CHANNEL_SFX1    0
+#define CHANNEL_SFX2    1
+#define CHANNEL_MUSIC   2
+const char* soundFX1Path = "rom:/cannon.wav64";
+const char* soundFX2Path = "rom:/laser.wav64";
+
+// Text
+const char *textMessage = "SANDBOX64 - 0.01\n";
+const char *testText = 
+            "Two $02households$01, both alike in dignity,\n"
+            "In $02fair Verona$01, where we lay our scene,\n"
+            "From ancient grudge break to new $02mutiny$01,\n"
+            "Where $02civil blood$01 makes civil hands unclean.\n"
+            "From forth the fatal loins of these $02two foes$01\n"
+            "A pair of $02star-cross'd lovers$01 take their life;\n";
+
 
 
 // forward decalred functions
@@ -37,6 +65,7 @@ void HandleInput(AF_Input* _input, AF_ECS* _ecs);
 void Game_DrawPhysics(AF_ECS* _ecs);
 void Game_SetupEntities(AF_ECS* _ecs);
 AF_Entity* CreateCube(AF_ECS* _ecs);
+AF_Entity* CreateAudioEntity(AF_ECS* _ecs, AF_AudioClip _audioClip, uint8_t _channel, void* _waveData, BOOL _isLooping);
 void Game_OnTrigger(AF_Collision* _collision);
 
 
@@ -49,13 +78,45 @@ AF_Entity* CreateCube(AF_ECS* _ecs){
 	*returnedCube->rigidbody = AF_C3DRigidbody_ADD();
 	*returnedCube->collider = AF_CCollider_Box_ADD();
 	*returnedCube->mesh = AF_CMesh_ADD();
+	returnedCube->mesh->meshType = AF_MESH_TYPE_CUBE;
 	Vec3 cubeBounds = {6, 6, 6};
 	returnedCube->collider->boundingVolume = cubeBounds;
 	void (*onCollisionCallback)(AF_Collision*) = &Game_OnCollision;
 	returnedCube->collider->collision.callback = onCollisionCallback;
 	//cube->collider->showDebug = TRUE;
 	returnedCube->collider->showDebug = TRUE;
+
 	return returnedCube;
+}
+
+AF_Entity* CreateAudioEntity(AF_ECS* _ecs, AF_AudioClip _audioClip, uint8_t _channel, void* _wavData, BOOL _isLooping){
+	// NULL checks
+	if(_ecs == NULL){
+		debugf("CreateAudioEntity: passed in a null _ecs\n");
+		return NULL;
+	}
+
+	if(_wavData == NULL){
+		debugf("CreateAudioEntity: passed in a null _wavData\n");
+		return NULL;
+	}
+	AF_Entity* returnEntity = AF_ECS_CreateEntity(_ecs);
+	*returnEntity->audioSource = AF_CAudioSource_ADD();
+
+	AF_CAudioSource* audioSource = returnEntity->audioSource;
+	audioSource->channel = _channel;
+	audioSource->loop = _isLooping;
+	audioSource->clipData = _wavData;
+	audioSource->clip = _audioClip;
+	// Bump maximum frequency of music channel to 128k.
+	// The default is the same of the output frequency (44100), but we want to
+	// let user increase it.
+	mixer_ch_set_limits(audioSource->channel, 0, audioSource->clip.clipFrequency, 0);
+
+	wav64_open((wav64_t*)audioSource->clipData, audioSource->clip.clipPath);
+	wav64_set_loop((wav64_t*)audioSource->clipData, audioSource->loop);
+
+	return returnEntity;
 }
 
 void Game_Awake(AF_ECS* _ecs){
@@ -99,11 +160,16 @@ void Game_Update(AF_Input* _input, AF_ECS* _ecs)
 
 	// Check whether one audio buffer is ready, otherwise wait for next
 	// frame to perform mixing.
+
+	// TODO: re-enable for audio
+	/*
 	if (audio_can_write()) {    	
 		short *buf = audio_write_begin();
 		mixer_poll(buf, audio_get_buffer_length());
 		audio_write_end();
-	}
+	}*/
+
+	
        
 }
 
@@ -116,6 +182,8 @@ void Game_LateUpdate(AF_ECS* _ecs){
 	
 	//Game_DrawPhysics(_ecs);
 	//AF_Physics_DrawCollisions(_ecs);
+	
+	
 	
 }
 
@@ -167,8 +235,8 @@ void HandleInput(AF_Input* _input, AF_ECS* _ecs){
 		AF_Physics_ApplyLinearImpulse(cube->rigidbody, jumpVelocity);
 
 		// play sound
-		wav64_play(&sfx_laser, CHANNEL_SFX2);
-		mixer_ch_set_vol(CHANNEL_SFX2, 0.25f, 0.25f);
+		AF_Audio_Play(laserSoundEntity->audioSource, 0.25f, FALSE);
+		
 	}else{
 		// turn off the visibility of meshes
 		meshIsEnabled = TRUE;
@@ -219,6 +287,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
 	plane = AF_ECS_CreateEntity(_ecs);
 	*plane->collider = AF_CCollider_Plane_ADD();
 	*plane->mesh = AF_CMesh_ADD();
+	plane->mesh->meshType = AF_MESH_TYPE_PLANE;
 	Vec3 planePos = {0,-5, 0};
 	plane->transform->pos = planePos;
 	Vec3 planeBounds = {40, 1.0f, 40};
@@ -229,34 +298,56 @@ void Game_SetupEntities(AF_ECS* _ecs){
 	//plane->transform->pos = planePos;
 
 	// Setup Audio
+	// TODO: put into audio function
 	audio_init(44100, 4);
 	mixer_init(16);  // Initialize up to 16 channels
 
-	// Bump maximum frequency of music channel to 128k.
-	// The default is the same of the output frequency (44100), but we want to
-	// let user increase it.
-	mixer_ch_set_limits(CHANNEL_MUSIC, 0, 128000, 0);
-	mixer_ch_set_limits(CHANNEL_SFX1, 0, 128000, 0);
-	mixer_ch_set_limits(CHANNEL_SFX2, 0, 128000, 0);
+	AF_AudioClip musicAudioClip = {0, musicPath, 12800};
+	laserSoundEntity = CreateAudioEntity(_ecs, musicAudioClip, CHANNEL_MUSIC, (void*)&sfx_music, TRUE);
 
-	wav64_open(&sfx_cannon, "rom:/cannon.wav64");
-	wav64_open(&sfx_laser, "rom:/laser.wav64");
-	wav64_set_loop(&sfx_laser, false);
+	AF_AudioClip sfx1AudioClip = {0, soundFX1Path, 128000};
+	laserSoundEntity = CreateAudioEntity(_ecs, sfx1AudioClip, CHANNEL_SFX1, (void*)&sfx_laser, FALSE);
 
-	wav64_open(&sfx_monosample, "rom:/monosample8.wav64");
-	wav64_set_loop(&sfx_monosample, true);
+	AF_AudioClip sfx2AudioClip = {0, soundFX2Path, 128000};
+	cannonSoundEntity = CreateAudioEntity(_ecs, sfx2AudioClip, CHANNEL_SFX2, (void*)&sfx_cannon, FALSE);
+
+	
 
 	bool music = false;
-	int music_frequency = sfx_monosample.wave.frequency;
+	int music_frequency = sfx_music.wave.frequency;
 
 	music = !music;
 	if (music) {
-		//wav64_play(&sfx_monosample, CHANNEL_MUSIC);
-		//music_frequency = sfx_monosample.wave.frequency;
+		//wav64_play(&sfx_music, CHANNEL_MUSIC);
+		//music_frequency = sfx_music.wave.frequency;
 	}
+
+	
+	// Create test Text
+	textBlock = AF_ECS_CreateEntity(_ecs);
+	*textBlock->text = AF_CText_ADD();
+
+	textBlock->text->text = textMessage;
+	textBlock->text->fontID = 1;
+	textBlock->text->fontPath = fontPath2;
+
+	// Text Color
+	textBlock->text->textColor[0] = 255;
+	textBlock->text->textColor[1] = 255;
+	textBlock->text->textColor[2] = 255;
+	textBlock->text->textColor[3] = 255;
+
+	// Text position
+    int box_width = 262;
+    int box_height = 0;//150;
+    int x0 = 10;//(320-box_width);///2;
+	int y0 = 20;//(240-box_height);///2; 
+
+	Vec2 textScreenPos = {x0, y0};
+	Vec2 textBounds = {box_width, box_height};
+    textBlock->text->screenPos = textScreenPos;
+	textBlock->text->textBounds = textBounds;
 }
-
-
 
 
 
@@ -297,7 +388,8 @@ void Game_OnTrigger(AF_Collision* _collision){
 	debugf("Game_OnTrigger: Entity %lu hit Entity %lu \n", entity1ID, entity2ID);
 	
 	// Play sound
-	wav64_play(&sfx_cannon, CHANNEL_SFX1);
+	AF_Audio_Play(cannonSoundEntity->audioSource, 1.0f, FALSE);
+	//wav64_play(&sfx_cannon, CHANNEL_SFX1);
 }
 
 

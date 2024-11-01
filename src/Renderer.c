@@ -10,6 +10,7 @@ n64 Libdragon rendering functions
 #include <rspq_profile.h>
 
 #include "AF_Renderer.h"
+#include "AF_UI.h"
 
 #include "Cube.h"
 #include "Plane.h"
@@ -36,7 +37,7 @@ static const GLfloat ambientLight[] = {0.75f, 0.75f, 0.75f, 1.0f};  // R, G, B, 
 
 // forward declare
 void InfrequenceGLEnable(void);
-
+void RenderMesh(AF_CMesh* _mesh, AF_CTransform3D* _transform);
 // Init Rendering
 void AF_Renderer_Init(AF_ECS* _ecs){
 
@@ -158,8 +159,6 @@ void AF_Renderer_Update(AF_ECS* _ecs){
 
     //glEnable(GL_TEXTURE_2D);
     //glBindTexture(GL_TEXTURE_2D, textures[texture_index]);
-    
-    
 
     // loop through the objects to render
     // TODO: on the CPU, compbine all similar meshes with the same material and render in less draw calls
@@ -167,26 +166,11 @@ void AF_Renderer_Update(AF_ECS* _ecs){
         // show debug
         AF_CMesh* mesh = &_ecs->meshes[i];
         if((AF_Component_GetHas(mesh->enabled) == TRUE) && (AF_Component_GetEnabled(mesh->enabled) == TRUE)){
-            
-            // is debug on
-            if(mesh->showDebug == TRUE){
-                //render debug
-            }
-            // Render mesh
-
-            // Render Shapes
-            if(_ecs->colliders[i].type == AABB){
-                render_cube(&_ecs->transforms[i]);
-            }
-            if(_ecs->colliders[i].type == Plane){
-                
-                render_plane(&_ecs->transforms[i]);
-            }
-        }else{
-            
+            RenderMesh(mesh, &_ecs->transforms[i]);
         }
 
-        
+        // Render UI
+        AF_UI_Renderer_Update(&_ecs->texts[i]);
     }
     //debugf("RenderCube: x: %f y: %f z: %f\n", _ecs->transforms[2].pos.x, _ecs->transforms[2].pos.y, _ecs->transforms[2].pos.z);
     // bind the textures
@@ -211,9 +195,41 @@ void AF_Renderer_Update(AF_ECS* _ecs){
     // Disable texturing
     //glDisable(GL_RDPQ_TEXTURING_N64);
     //glDisable(GL_RDPQ_MATERIAL_N64);
+}
 
+
+
+// Mesh rendering switching
+void RenderMesh(AF_CMesh* _mesh, AF_CTransform3D* _transform){
+    // is debug on
+    if(_mesh->showDebug == TRUE){
+        //render debug
+    }
+    // Render mesh
+
+    // Render Shapes
+    switch (_mesh->meshType)
+    {
+    case AF_MESH_TYPE_CUBE:
+        /* code */
+        render_cube(_transform);
+        break;
+    case AF_MESH_TYPE_PLANE:
+        /* code */
+        render_plane(_transform);
+    break;
+
+    case AF_MESH_TYPE_SPHERE:
+        /* code */
+    break;
+
+    case AF_MESH_TYPE_MESH:
+        /* code */
+    break;
     
-
+    default:
+        break;
+    }
 }
 
 void AF_Renderer_Finish(){
@@ -235,6 +251,7 @@ void AF_Renderer_Finish(){
         }
         rspq_wait();
     }
+    
 }
 
 
