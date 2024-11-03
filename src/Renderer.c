@@ -14,8 +14,12 @@ n64 Libdragon rendering functions
 
 #include "Cube.h"
 #include "Plane.h"
+#include "Sphere.h"
 #include "Camera.h"
 #include "ECS/Entities/AF_ECS.h"
+#include "Skinned.h"
+
+#include "AF_Physics.h"
 #define DEBUG_RDP 0
 
 
@@ -37,7 +41,7 @@ static const GLfloat ambientLight[] = {0.75f, 0.75f, 0.75f, 1.0f};  // R, G, B, 
 
 // forward declare
 void InfrequenceGLEnable(void);
-void RenderMesh(AF_CMesh* _mesh, AF_CTransform3D* _transform);
+void RenderMesh(AF_CMesh* _mesh, AF_CTransform3D* _transform, float _dt);
 // Init Rendering
 void AF_Renderer_Init(AF_ECS* _ecs){
 
@@ -62,7 +66,7 @@ void AF_Renderer_Init(AF_ECS* _ecs){
     rdpq_debug_log(true);
 #endif
 
-
+    // ======== Camera ==========
     // Setup camera things
     camera.distance = -12.0f;
     camera.rotation = 0.0f;
@@ -91,11 +95,7 @@ void AF_Renderer_Init(AF_ECS* _ecs){
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-
-    // Setup materials 
-    GLfloat mat_diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, mat_diffuse);
-
+    // ==========FOG=============
     // Set other opengl things like fog
     glFogf(GL_FOG_START, 5);
     glFogf(GL_FOG_END, 20);
@@ -104,30 +104,114 @@ void AF_Renderer_Init(AF_ECS* _ecs){
     // set ambient light
     // Set the global ambient light
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambientLight);
+    // Set to true if we want light to take into account the camera view distance, otherwise treat the view as being infinite distance away.
+    glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
 
-    glEnable(GL_MULTISAMPLE_ARB);
 
-    rspq_profile_start();
+    //===========Lighting============
+    /*
+    float light_radius = 10.0f;
+
+    for (uint32_t i = 0; i < 8; i++)
+    {
+        glEnable(GL_LIGHT0 + i);
+        glLightfv(GL_LIGHT0 + i, GL_DIFFUSE, light_diffuse[i]);
+        glLightf(GL_LIGHT0 + i, GL_LINEAR_ATTENUATION, 2.0f/light_radius);
+        glLightf(GL_LIGHT0 + i, GL_QUADRATIC_ATTENUATION, 1.0f/(light_radius*light_radius));
+    }*/
+
+   // ===========Materials==================
+   // Setup materials 
+    GLfloat mat_diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, mat_diffuse);
+
+    
+
+    /*
+    for (uint32_t i = 0; i < 4; i++)
+    {
+        glBindTexture(GL_TEXTURE_2D, textures[i]);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
+
+        glSpriteTextureN64(GL_TEXTURE_2D, sprites[i], &(rdpq_texparms_t){.s.repeats = REPEAT_INFINITE, .t.repeats = REPEAT_INFINITE});
+    }*/
+
+    // ===========Primatives and Mesh==============
+    // Cube
     setup_cube();
 
+    // Plane
     setup_plane();
     make_plane_mesh();
 
-    InfrequenceGLEnable();
+    // Sphere
+    setup_sphere();
+    make_sphere_mesh();
 
-    rdpq_set_mode_standard();
-    rdpq_mode_filter(FILTER_BILINEAR);
+
+    // Setup skeleton
+    setup_skeleton();
+    setup_animation();
+
+    // =========Textures==================
+    glEnable(GL_MULTISAMPLE_ARB);
+
+    
+
+    #if 0
+    GLenum min_filter = GL_LINEAR_MIPMAP_LINEAR;
+    #else
+    GLenum min_filter = GL_LINEAR;
+    #endif
+
+    
+    sprite_t* textureData;
+    textureData = sprite_load("rom:/circle0.sprite");
+    if(textureData == NULL)
+    {
+        debugf("Renderer:Init: Failed to load texture\n");
+    }
+
+    GLuint textureID = 0;
+    glGenTextures(1, &textureID);
+    
+    if(textureID == 0)
+    {
+        debugf("Renderer:Init: Failed to create texture buffer in glGenTextures\n");
+    }
+    // Check for OpenGL errors
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR) {
+        debugf("OpenGL Error after glGenTextures: %u\n", (unsigned int)error);
+    }
+
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);  
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    // Bind texture to textureData and set texture parameters
+    glSpriteTextureN64(GL_TEXTURE_2D, textureData, &(rdpq_texparms_t){.s.repeats = REPEAT_INFINITE, .t.repeats = REPEAT_INFINITE});
+
+
+    for(int i = 0; i < _ecs->entitiesCount; ++i){
+        AF_CMesh* mesh = &_ecs->meshes[i];
+        if((AF_Component_GetHas(mesh->enabled) == TRUE) && (AF_Component_GetEnabled(mesh->enabled) == TRUE)){
+            _ecs->sprites->spriteData = (void*)textureData;
+            mesh->material.textureID = (uint32_t)textureID;
+        }
+    }
+
+    // ==========Remaining setup=============
+
+
+    
+
+    rspq_profile_start();
 }
 
-// Infrequence opengl calls that don't need to happen unless updating something important.
-void InfrequenceGLEnable(void){
-    // Set some global render modes that we want to apply to all models
-    // Enable opengl things
-    glEnable(GL_LIGHTING);
-    glEnable(GL_NORMALIZE);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-}
+
 // Update Renderer
 // TODO: take in an array of entities 
 void AF_Renderer_Update(AF_ECS* _ecs, AF_Time* _time){
@@ -154,19 +238,37 @@ void AF_Renderer_Update(AF_ECS* _ecs, AF_Time* _time){
     // attatch the camera transform
     camera_transform(&camera);
 
-    
+    // Enable opengl things
     glEnable(GL_LIGHTING);
+    glEnable(GL_NORMALIZE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
-    //glEnable(GL_TEXTURE_2D);
-    //glBindTexture(GL_TEXTURE_2D, textures[texture_index]);
+    rdpq_set_mode_standard();
+    rdpq_mode_filter(FILTER_BILINEAR);
+    //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
 
     // loop through the objects to render
     // TODO: on the CPU, compbine all similar meshes with the same material and render in less draw calls
+    glEnable(GL_TEXTURE_2D);
     for(int i = 0; i < _ecs->entitiesCount; ++i){
         // show debug
         AF_CMesh* mesh = &_ecs->meshes[i];
+        
         if((AF_Component_GetHas(mesh->enabled) == TRUE) && (AF_Component_GetEnabled(mesh->enabled) == TRUE)){
-            RenderMesh(mesh, &_ecs->transforms[i]);
+            // load the texture
+            if(mesh->material.textureID != 0){
+                glBindTexture(GL_TEXTURE_2D, mesh->material.textureID);
+            }
+            
+            RenderMesh(mesh, &_ecs->transforms[i], _time->currentFrame);
+             AF_CCollider* collider = &_ecs->colliders[i];
+            if(collider->showDebug == TRUE){
+               
+                float collisionColor[4] = {255,0, 0, 1};
+                AF_Physics_DrawBox(collider, collisionColor);	
+            }
         }
 
         // Render UI
@@ -176,10 +278,9 @@ void AF_Renderer_Update(AF_ECS* _ecs, AF_Time* _time){
         AF_UI_RendererText_Update(&_ecs->texts[i]);
     }
     //debugf("RenderCube: x: %f y: %f z: %f\n", _ecs->transforms[2].pos.x, _ecs->transforms[2].pos.y, _ecs->transforms[2].pos.z);
-    // bind the textures
     //glBindTexture(GL_TEXTURE_2D, textures[(texture_index + 1)%4]);
-    //glDisable(GL_TEXTURE_2D);
     //disable the lighting
+    glDisable(GL_TEXTURE_2D);
     glDisable(GL_LIGHTING);
 
     // Draw a primitive with GL_RDPQ_TEXTURING_N64
@@ -203,7 +304,7 @@ void AF_Renderer_Update(AF_ECS* _ecs, AF_Time* _time){
 
 
 // Mesh rendering switching
-void RenderMesh(AF_CMesh* _mesh, AF_CTransform3D* _transform){
+void RenderMesh(AF_CMesh* _mesh, AF_CTransform3D* _transform, float _dt){
     // is debug on
     if(_mesh->showDebug == TRUE){
         //render debug
@@ -216,6 +317,7 @@ void RenderMesh(AF_CMesh* _mesh, AF_CTransform3D* _transform){
     case AF_MESH_TYPE_CUBE:
         /* code */
         render_cube(_transform);
+        
         break;
     case AF_MESH_TYPE_PLANE:
         /* code */
@@ -224,10 +326,12 @@ void RenderMesh(AF_CMesh* _mesh, AF_CTransform3D* _transform){
 
     case AF_MESH_TYPE_SPHERE:
         /* code */
+        render_sphere(_transform);
     break;
 
     case AF_MESH_TYPE_MESH:
         /* code */
+        render_skinned(_transform, _dt);
     break;
     
     default:

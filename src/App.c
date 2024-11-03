@@ -116,6 +116,7 @@ void App_Update(AF_Input* _input, AF_ECS* _ecs, AF_Time* _time){
     Game_LateUpdate(_ecs);
     //AF_Renderer_Finish(); 
     // update the tick
+    _time->currentTick++;
     curTick++;
 }
 
@@ -130,7 +131,7 @@ void App_Render_Update(AF_Time* _time){
     //}
     // 
     AF_Renderer_Finish(); 
-    curFrame++;
+    _time->currentFrame++;
 }
 
 

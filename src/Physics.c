@@ -47,8 +47,8 @@ void AF_Physics_Update(AF_ECS* _ecs, const float _dt){
 	}
 	// loop through and update all transforms based on their velocities
 	for(int i = 0; i < _ecs->entitiesCount; ++i){
-		AF_CCollider* collider = &_ecs->colliders[i];
-		AF_C3DRigidbody* rigidbody = &_ecs->rigidbodies[i];
+	AF_C3DRigidbody* rigidbody = &_ecs->rigidbodies[i];
+	if((AF_Component_GetHas(rigidbody->enabled) == TRUE) && (AF_Component_GetEnabled(rigidbody->enabled) == TRUE)){
 		AF_CTransform3D* transform = &_ecs->transforms[i];
 
 		// Negate the velocities before adding more
@@ -57,15 +57,18 @@ void AF_Physics_Update(AF_ECS* _ecs, const float _dt){
 		
 		
 		//debgf("Physics: upate: velocity x: %f y: %f z: %f\n", rigidbody->velocity.x, rigidbody->velocity.y, rigidbody->velocity.z);
-		AF_Physics_IntegrateAccell(rigidbody, _dt);
-		AF_Physics_IntegrateVelocity(transform, rigidbody, _dt);
-		
+		// if the object isn't static
+		if(rigidbody->inverseMass > 0 || rigidbody->isKinematic == TRUE){
+				AF_Physics_IntegrateAccell(rigidbody, _dt);
+				AF_Physics_IntegrateVelocity(transform, rigidbody, _dt);
+		}
 		//_ecs->transforms[i].pos = Vec3_ADD(_ecs->rigidbodies[i].velocity, _ecs->transforms[i].pos);
 
+		}
+
+		AF_CCollider* collider = &_ecs->colliders[i];
 		// update the bounds position
 		collider->pos = _ecs->transforms[i].pos;
-
-			
 		// clear all collsision except keep the callback
 		AF_Collision clearedCollision = {FALSE, NULL, NULL, collider->collision.callback, {0,0,0}, 0.0f, {0,0,0}, 0};
 		collider->collision = clearedCollision;
@@ -96,7 +99,7 @@ void AF_Physics_LateRenderUpdate(AF_ECS* _ecs){
 			continue;
 		}
 		//debugf("Physics: LateRenderUpate: draw debug\n");
-		AF_Physics_DrawBox(collider, collisionColor);	
+		//AF_Physics_DrawBox(collider, collisionColor);	
 	}
 }
 

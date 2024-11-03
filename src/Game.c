@@ -9,6 +9,7 @@
 #include "AF_Physics.h"
 #include "AF_Audio.h"
 #include "AF_UI.h"
+#include "ECS/Components/AF_CMesh.h"
 
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -20,8 +21,14 @@
 // ECS system
 AF_Entity* cube;
 AF_Entity* cube2;
+AF_Entity* backWall;
+AF_Entity* frontWall;
+AF_Entity* rightWall;
+AF_Entity* leftWall;
+
 AF_Entity* trigger1;
 AF_Entity* plane;
+AF_Entity* sphere1;
 AF_Entity* camera;
 AF_Entity* animatedSprite;
 AF_Entity* textBlock;
@@ -29,11 +36,20 @@ AF_Entity* laserSoundEntity;
 AF_Entity* cannonSoundEntity;
 AF_Entity* musicTrackSoundEntity;
 
+AF_Entity* skinnedMeshEntity;
+
 
 
 // define some const values
 #define STICK_DEAD_ZONE 0.01
 #define PLAYER_SPEED 20
+
+// Textures
+const char* circleTexturePath = "rom:/circle0.sprite";
+const char* diamondTexturePath = "rom:/diamond0.sprite";
+const char* pentagonTexturePath = "rom:/pentagon0.sprite";
+const char* triangleTexturePath = "rom:/triangle0.sprite";
+GLuint texture;
 
 // Text / Font
 const char* fontPath = "rom:/Pacifico.font64";
@@ -83,6 +99,7 @@ void Game_SetupEntities(AF_ECS* _ecs);
 AF_Entity* CreateCube(AF_ECS* _ecs);
 AF_Entity* CreateAudioEntity(AF_ECS* _ecs, AF_AudioClip _audioClip, uint8_t _channel, void* _waveData, BOOL _isLooping);
 AF_Entity* CreateSprite(AF_ECS* _ecs, const char* _spritePath, Vec2 _screenPos, Vec2 _size, uint8_t _color[4], char _animationFrames, Vec2 _spriteSheetSize, void* _spriteData);
+AF_Entity* CreatePrimative(AF_ECS* _ecs, Vec3 _pos, Vec3 _bounds, enum AF_MESH_TYPE _meshType, enum CollisionVolumeType _collisionType, void* _collisionCallback);
 void Game_OnTrigger(AF_Collision* _collision);
 
 
@@ -112,18 +129,36 @@ AF_Entity* CreateSprite(AF_ECS* _ecs, const char* _spritePath, Vec2 _screenPos, 
 	return entity;
 }
 
+AF_Entity* CreatePrimative(AF_ECS* _ecs, Vec3 _pos, Vec3 _bounds, enum AF_MESH_TYPE _meshType, enum CollisionVolumeType _collisionType, void* _collisionCallback){
+	AF_Entity* entity = AF_ECS_CreateEntity(_ecs);
+	//move the position up a little
+	entity->transform->pos = _pos;
+	// add a rigidbody to our cube
+	*entity->rigidbody = AF_C3DRigidbody_ADD();
+	
+	*entity->collider = AF_CCollider_ADD_TYPE(_collisionType);//AF_CCollider_Box_ADD();
+	*entity->mesh = AF_CMesh_ADD();
+	entity->mesh->meshType = _meshType;
+	entity->collider->boundingVolume = _bounds;
+	//void (*onCollisionCallback)(AF_Collision*) = &Game_OnCollision;
+	entity->collider->collision.callback = _collisionCallback;
+	entity->collider->showDebug = FALSE;
+
+	return entity;
+}
+
 AF_Entity* CreateCube(AF_ECS* _ecs){
 	AF_Entity* returnedCube = AF_ECS_CreateEntity(_ecs);
 	//move the position up a little
 	Vec3 cubePosition = {returnedCube->transform->pos.x, returnedCube->transform->pos.y , returnedCube->transform->pos.z};
+	Vec3 cubeScale = {returnedCube->transform->scale.x, returnedCube->transform->scale.y , returnedCube->transform->scale.z};
 	returnedCube->transform->pos = cubePosition;
 	// add a rigidbody to our cube
 	*returnedCube->rigidbody = AF_C3DRigidbody_ADD();
 	*returnedCube->collider = AF_CCollider_Box_ADD();
 	*returnedCube->mesh = AF_CMesh_ADD();
 	returnedCube->mesh->meshType = AF_MESH_TYPE_CUBE;
-	Vec3 cubeBounds = {6, 6, 6};
-	returnedCube->collider->boundingVolume = cubeBounds;
+	returnedCube->collider->boundingVolume = cubeScale;
 	void (*onCollisionCallback)(AF_Collision*) = &Game_OnCollision;
 	returnedCube->collider->collision.callback = onCollisionCallback;
 	//cube->collider->showDebug = TRUE;
@@ -302,42 +337,108 @@ void Game_SetupEntities(AF_ECS* _ecs){
 	// initialise the ecs system
 	// Create Camera
 	camera = AF_ECS_CreateEntity(_ecs);
+	
 
 	// Create Player
 	cube = CreateCube(_ecs);
-	Vec3 cube1Pos = {2.5, 0, -5};
+	Vec3 cube1Pos = {2.5, 1.5, -5};
+	Vec3 cube1Scale = {1,1,1};
 	cube->transform->pos = cube1Pos;
-	cube->collider->showDebug = FALSE;
+	cube->transform->scale = cube1Scale;
+	cube->collider->boundingVolume = Vec3_MULT_SCALAR(cube1Scale, 2);
+	cube->collider->showDebug = TRUE;
 	cube->rigidbody->inverseMass = 1;
+	cube->rigidbody->isKinematic = TRUE;
 	
 	// Create Enemy
 	cube2 = CreateCube(_ecs);
-	Vec3 cube2Pos = {-5, 0, -5};
+	Vec3 cube2Pos = {-5, 1.5, -5};
+	Vec3 cube2Scale = {1,1,1};
 	cube2->transform->pos  = cube2Pos;
+	cube2->transform->scale = cube2Scale;
 	cube2->collider->showDebug = TRUE;
+	cube2->collider->boundingVolume = Vec3_MULT_SCALAR(cube2Scale,2);
 	cube2->rigidbody->inverseMass = 1;
 
 	// Create Trigger
 	trigger1 = CreateCube(_ecs);
 	Vec3 trigger1Pos = {-10, 0, 0};
-	cube2->transform->pos  = trigger1Pos;
-	cube2->rigidbody->inverseMass = 0;
-	cube2->collider->collision.callback = Game_OnTrigger;
+	Vec3 trigger1Scale = {1,1,1};
+	trigger1->transform->pos  = trigger1Pos;
+	trigger1->rigidbody->inverseMass = 0;
+	trigger1->collider->boundingVolume = Vec3_MULT_SCALAR(trigger1Scale,2);
+	trigger1->collider->collision.callback = Game_OnTrigger;
+
+	// Front Wall
+	frontWall = CreateCube(_ecs);
+	Vec3 frontWallPos = {0, 0, 15};
+	Vec3 frontWallScale = {20, 1, 1};
+	frontWall->transform->pos  = frontWallPos;
+	frontWall->transform->scale = frontWallScale;
+	frontWall->collider->boundingVolume = Vec3_MULT_SCALAR(frontWallScale,2);
+	frontWall->collider->showDebug = TRUE;
+	frontWall->rigidbody->inverseMass = 0;
+
+	// Back WAll
+	backWall = CreateCube(_ecs);
+	Vec3 backWallPos = {0, 0, -15};
+	Vec3 backWallScale = {20, 1, 1};
+	backWall->transform->pos  = backWallPos;
+	backWall->transform->scale = backWallScale;
+	backWall->collider->boundingVolume = Vec3_MULT_SCALAR(backWallScale,2);
+	backWall->collider->showDebug = TRUE;
+	backWall->rigidbody->inverseMass = 0;
+
+	
+	// Left Wall
+	leftWall = CreateCube(_ecs);
+	Vec3 leftWallPos = {-20, 0, 0};
+	Vec3 leftWallScale = {1, 1, 15};
+	leftWall->transform->pos  = leftWallPos;
+	leftWall->transform->scale = leftWallScale;
+	leftWall->collider->boundingVolume = Vec3_MULT_SCALAR(leftWallScale,2);
+	leftWall->collider->showDebug = TRUE;
+	leftWall->rigidbody->inverseMass = 0;
+
+	
+	// right
+	rightWall = CreateCube(_ecs);
+	Vec3 rightWallPos = {20, 0, 0};
+	Vec3 rightWallScale = {1, 1, 15};
+	rightWall->transform->pos  = rightWallPos;
+	rightWall->transform->scale = rightWallScale;
+	rightWall->collider->boundingVolume = Vec3_MULT_SCALAR(rightWallScale,2);
+	rightWall->collider->showDebug = TRUE;
+	rightWall->rigidbody->inverseMass = 0;
 
 	
 	// Create Plane
-	plane = AF_ECS_CreateEntity(_ecs);
-	*plane->collider = AF_CCollider_Plane_ADD();
-	*plane->mesh = AF_CMesh_ADD();
-	plane->mesh->meshType = AF_MESH_TYPE_PLANE;
-	Vec3 planePos = {0,-5, 0};
+
+	plane = CreateCube(_ecs);
+	Vec3 planePos = {0, -2, 0};
+	Vec3 planeScale = {20,1,20};
 	plane->transform->pos = planePos;
-	Vec3 planeBounds = {40, 1.0f, 40};
-	plane->collider->boundingVolume = planeBounds;
-	plane->collider->showDebug = FALSE;
+	plane->transform->scale = planeScale;
+	plane->collider->boundingVolume = Vec3_MULT_SCALAR(planeScale, 2);
+	plane->collider->showDebug = TRUE;
 	plane->rigidbody->inverseMass = 0;
-	//plane->transform->pos = planePos;
-	//plane->transform->pos = planePos;
+
+	// Create Sphere
+	Vec3 spherePos = {10, 0, 0};
+	Vec3 sphereScale = {1,1,1};
+	Vec3 sphereBounds = {5,5,5};//Vec3_MULT_SCALAR(sphereScale, 2);
+	sphere1 = CreatePrimative(_ecs, spherePos, sphereBounds, AF_MESH_TYPE_SPHERE, AABB, (void*)Game_OnCollision);
+	sphere1->rigidbody->inverseMass = 1;
+
+	// Create skinned Mesh
+	Vec3 meshPos = {5, 3, 5};
+	Vec3 meshScale = {2,2,2};
+	Vec3 meshBounds = Vec3_MULT_SCALAR(sphereScale, 2);
+	skinnedMeshEntity = CreatePrimative(_ecs, meshPos, meshBounds, AF_MESH_TYPE_MESH, AABB, (void*)Game_OnCollision);
+	skinnedMeshEntity->rigidbody->inverseMass = 0;
+	skinnedMeshEntity->collider->showDebug = TRUE;
+
+
 
 	// Setup Audio
 	// TODO: put into audio function
@@ -454,11 +555,15 @@ void Game_Shutdown(void){
 
 //// TODO: get rid of this
 void Game_DrawPhysics(AF_ECS* _ecs){
+	
+	
+	// Convert the position of the cube in world pos into screen pos
+	
+	
+	/*
 	float green[4] = {0,255, 0, 1};
 	float red[4] = {255,0, 0, 1};
 	float lightBlue[4] = {0,255, 255, 1};
-	
-	// Convert the position of the cube in world pos into screen pos
 	float distanceInfront = 10.0f;
 	Vec3 startPoint = {cube->transform->pos.x,cube->transform->pos.y - 2.5f,cube->transform->pos.z};
 	Vec3 justInFront = {startPoint.x, startPoint.y - distanceInfront, startPoint.z};
@@ -473,14 +578,14 @@ void Game_DrawPhysics(AF_ECS* _ecs){
 	}else{
 		AF_Debug_DrawLineWorld(&startPoint, &justInFront, red, TRUE);
 	}
-
+	
 	for(int i = 0; i < _ecs->entitiesCount; ++i){
 		if(_ecs->colliders[i].showDebug == TRUE){
 				if(_ecs->colliders[i].collision.collided == TRUE){
 					
 				}
 		}
-	}
+	}*/
 	
 }
 

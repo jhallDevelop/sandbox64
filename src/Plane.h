@@ -1,3 +1,4 @@
+// From https://github.com/DragonMinded/libdragon/blob/opengl/examples/gldemo/plane.h
 #ifndef PLANE_H
 #define PLANE_H
 
@@ -7,7 +8,7 @@
 
 #include "vertex.h"
 
-#define PLANE_SIZE       40.0f
+#define PLANE_SIZE       1.0f
 #define PLANE_SEGMENTS   16
 
 static GLuint plane_buffers[2];
@@ -120,6 +121,10 @@ void render_plane(AF_CTransform3D* _transform)
 	debugf("Renderer Update: Trying to render a cube with a null transform\n");
 	return;
 	}
+
+    // Apply scaling
+    glScalef(_transform->scale.x, _transform->scale.y, _transform->scale.z);
+    
     glTranslatef(_transform->pos.x, _transform->pos.y, _transform->pos.z);
 
     rdpq_debug_log_msg("Plane");

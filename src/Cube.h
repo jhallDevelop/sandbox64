@@ -1,3 +1,4 @@
+// From https://github.com/DragonMinded/libdragon/blob/opengl/examples/gldemo/plane.h
 #ifndef CUBE_H
 #define CUBE_H
 
@@ -5,7 +6,7 @@
 #include <GL/gl.h>
 #include "Vertex.h"
 #include "ECS/Components/AF_CTransform3D.h"
-static const float cube_size = 3.0f;
+static const float cube_size = 1.0f;
 
 static const vertex_t cube_vertices[] = {
     // +X
@@ -87,10 +88,19 @@ void render_cube(const AF_CTransform3D* _transform)
 	debugf("Renderer Update: Trying to render a cube with a null transform\n");
 	return;
 	}
+
+    // Apply scaling
+    glScalef(_transform->scale.x, _transform->scale.y, _transform->scale.z);
+
+    // Apply rotation if needed (optional)
+    // glRotatef(_transform->rotationAngle, _transform->rotationAxis.x, _transform->rotationAxis.y, _transform->rotationAxis.z);
+
     glTranslatef(_transform->pos.x, _transform->pos.y, _transform->pos.z);
+    
 
     // Apply vertex color as material color.
     // Because the cube has colors set per vertex, we can color each face seperately
+    
     glEnable(GL_COLOR_MATERIAL);
 
     // Apply to ambient and diffuse material properties
