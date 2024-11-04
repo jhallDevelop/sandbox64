@@ -79,7 +79,7 @@ void draw_cube()
     glDisableClientState(GL_COLOR_ARRAY);
 }
 
-void render_cube(const AF_CTransform3D* _transform)
+void render_cube(const AF_CTransform3D* _transform, int _animate, float _rotation)
 {
     rdpq_debug_log_msg("Cube");
     glPushMatrix();
@@ -94,6 +94,12 @@ void render_cube(const AF_CTransform3D* _transform)
 
     // Apply rotation if needed (optional)
     // glRotatef(_transform->rotationAngle, _transform->rotationAxis.x, _transform->rotationAxis.y, _transform->rotationAxis.z);
+    if(_animate == 1){
+        //glRotatef(_rotation*0.23f, 1, 0, 0);
+        glTranslatef(_transform->pos.x*.75f, _transform->pos.y*.75f, _transform->pos.z*.75f);
+        glRotatef(_rotation*2.0f, 0, 0, 1.0f);
+        //glRotatef(_rotation*1.2f, 0, .5, 0);
+    }
 
     glTranslatef(_transform->pos.x, _transform->pos.y, _transform->pos.z);
     

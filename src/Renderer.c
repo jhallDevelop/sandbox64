@@ -40,7 +40,7 @@ static const GLfloat ambientLight[] = {0.75f, 0.75f, 0.75f, 1.0f};  // R, G, B, 
 
 
 // Textures
-#define TEXTURE_COUNT 9
+#define TEXTURE_COUNT 10
 static GLuint textures[TEXTURE_COUNT];
 static const char *texture_path[TEXTURE_COUNT] = {
     "rom:/green.sprite",        // 0 player 1
@@ -51,7 +51,8 @@ static const char *texture_path[TEXTURE_COUNT] = {
     "rom:/diamond0.sprite",     // 5 bucket
     "rom:/triangle0.sprite",    // 6 villages
     "rom:/checker.sprite",       // 7 level
-    "rom:/dark.sprite"          // 8 level
+    "rom:/dark.sprite",         // 8 level
+    "rom:/god.sprite"           // 9 god
 
 };
 static sprite_t *sprites[TEXTURE_COUNT];
@@ -396,13 +397,17 @@ void RenderMesh(AF_CMesh* _mesh, AF_CTransform3D* _transform, float _dt){
         //render debug
     }
     // Render mesh
-
+    int isAnimating = 0;
     // Render Shapes
     switch (_mesh->meshType)
     {
     case AF_MESH_TYPE_CUBE:
         /* code */
-        render_cube(_transform);
+        
+        if(_mesh->isAnimating == TRUE){
+            isAnimating = 1;
+        }
+        render_cube(_transform, isAnimating, _dt);
         
         break;
     case AF_MESH_TYPE_PLANE:
@@ -412,7 +417,10 @@ void RenderMesh(AF_CMesh* _mesh, AF_CTransform3D* _transform, float _dt){
 
     case AF_MESH_TYPE_SPHERE:
         /* code */
-        render_sphere(_transform);
+        if(_mesh->isAnimating == TRUE){
+            isAnimating = 1;
+        }
+        render_sphere(_transform, isAnimating, _dt);
     break;
 
     case AF_MESH_TYPE_MESH:

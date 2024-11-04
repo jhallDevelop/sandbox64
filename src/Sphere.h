@@ -169,28 +169,31 @@ void draw_sphere()
     glCallList(sphere_list);
 }
 
-void render_sphere(AF_CTransform3D* _transform)//float rotation)
+void render_sphere(AF_CTransform3D* _transform, int _animate, float rotation)
 {
     rdpq_debug_log_msg("Sphere");
     glPushMatrix();
 
-    //glRotatef(rotation*0.23f, 1, 0, 0);
-    //glRotatef(rotation*0.98f, 0, 0, 1);
-    //glRotatef(rotation*1.71f, 0, 1, 0);
+    if(_animate == 1){
+        glRotatef(rotation*0.23f, 1, 0, 0);
+        glRotatef(rotation*0.98f, 0, 0, 1);
+        glRotatef(rotation*1.71f, 0, 1, 0);
+    }
+    
 
     // We want to see back faces instead of front faces, because the camera will be inside the sphere
     //glCullFace(GL_FRONT);
     // translate the object first
     // Apply vertex color as material color.
     // Because the cube has colors set per vertex, we can color each face seperately
-    glEnable(GL_COLOR_MATERIAL);
+    //glEnable(GL_COLOR_MATERIAL);
     glTranslatef(_transform->pos.x, _transform->pos.y, _transform->pos.z);
     // Apply scaling
     glScalef(_transform->scale.x, _transform->scale.y, _transform->scale.z);
 
     draw_sphere();
     //glCullFace(GL_BACK);
-    glDisable(GL_COLOR_MATERIAL);
+    //glDisable(GL_COLOR_MATERIAL);
 
     glPopMatrix();
 }

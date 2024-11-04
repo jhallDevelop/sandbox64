@@ -30,6 +30,13 @@ AF_Entity* player4Entity;
 
 // God
 AF_Entity* godEntity;
+AF_Entity* godEye1;
+AF_Entity* godEye2;
+AF_Entity* godEye3;
+AF_Entity* godEye4;
+AF_Entity* godEyeInner1;
+AF_Entity* godEyeInner2;
+AF_Entity* godMouth;
 
 // Environment
 AF_Entity* leftWall;
@@ -54,7 +61,7 @@ AF_Entity* player3CountEntity;
 AF_Entity* player4CountEntity;
 
 // player counter char buffers
-char player1CharBuff[20] = "666";
+char player1CharBuff[320] = "0                 0                  0                  0";
 char player2CharBuff[20] = "666";
 char player3CharBuff[20] = "666";
 char player4CharBuff[20] = "666";
@@ -105,15 +112,21 @@ const char* animatedSpritePath = "";
 
 // Sound
 // data type to hold special n64 data
+AF_Entity* laserSoundEntity;
+AF_Entity* cannonSoundEntity;
+AF_Entity* musicSoundEntity;
 wav64_t sfx_cannon, sfx_laser, sfx_music;
 // Mixer channel allocation
 #define CHANNEL_SFX1    0
 #define CHANNEL_SFX2    1
 #define CHANNEL_MUSIC   2
-//const char* soundFX1Path = "rom:/cannon.wav64";
+
+const char* cannonFXPath = "rom:/cannon.wav64";
+const char* laserFXPath = "rom:/laser.wav64";
+const char* musicFXPath = "rom:/monosample8.wav64";
 
 // Text
-const char *titleText = "oldGods64 - 0.00006\n";
+const char *titleText = "og64 0.09\n";
 char godsCountLabelText[20] = "666";
 char countdownTimerLabelText[20] = "6666";
 
@@ -144,6 +157,8 @@ enum GAME_STATE gameState = GAME_STATE_PLAYING;
 //static sprite_t *sheet_knight;
 const char* player1SpriteSheetPath = "rom:/knight.sprite";
 
+int currentBucket = 0;
+
 // forward decalred functions
 void HandleInput(AF_Input* _input, AF_ECS* _ecs);
 void Game_DrawPhysics(AF_ECS* _ecs);
@@ -156,11 +171,14 @@ AF_Entity* Game_UI_CreatePlayerCountLabel(AF_ECS* _ecs, char* _textBuff, int _fo
 void UpdatePlayerScoreText();
 void Game_OnTrigger(AF_Collision* _collision);
 void Game_OnGodTrigger(AF_Collision* _collision);
-void Game_OnBucketTrigger(AF_Collision* _collision);
+void Game_OnBucket1Trigger(AF_Collision* _collision);
+void Game_OnBucket2Trigger(AF_Collision* _collision);
+void Game_OnBucket3Trigger(AF_Collision* _collision);
+void Game_OnBucket4Trigger(AF_Collision* _collision);
 void RenderGameOverScreen(AF_Input* _input);
 void UpdateText(AF_ECS* _ecs);
 void RenderMainMenu(AF_Input* _input, AF_Time* _time);
-
+void SpawnBucket();
 
 AF_Entity* CreateSprite(AF_ECS* _ecs, const char* _spritePath, Vec2 _screenPos, Vec2 _size, uint8_t _color[4], char _animationFrames, Vec2 _spriteSheetSize, void* _spriteData){
 	AF_Entity* entity = AF_ECS_CreateEntity(_ecs);
@@ -249,7 +267,7 @@ AF_Entity* CreateAudioEntity(AF_ECS* _ecs, AF_AudioClip _audioClip, uint8_t _cha
 	// Bump maximum frequency of music channel to 128k.
 	// The default is the same of the output frequency (44100), but we want to
 	// let user increase it.
-	mixer_ch_set_limits(audioSource->channel, 0, audioSource->clip.clipFrequency, 0);
+	mixer_ch_set_limits(audioSource->channel, 0, 128000, 0);//audioSource->clip.clipFrequency, 0);
 
 	wav64_open((wav64_t*)audioSource->clipData, audioSource->clip.clipPath);
 	wav64_set_loop((wav64_t*)audioSource->clipData, audioSource->loop);
@@ -292,6 +310,9 @@ void Game_Start(AF_ECS* _ecs){
 
     gameState = GAME_STATE_MAIN_MENU;
 
+    // choose the random spawn
+    SpawnBucket();
+
 }
 void Game_Update(AF_Input* _input, AF_ECS* _ecs, AF_Time* _time)
 {
@@ -313,7 +334,11 @@ void Game_Update(AF_Input* _input, AF_ECS* _ecs, AF_Time* _time)
         
 		//rigidbody->velocity = zeroVelocity;
 	}
-	HandleInput(_input, _ecs);
+
+    if(gameState == GAME_STATE_PLAYING){
+        HandleInput(_input, _ecs);
+    }
+	
 
 	// Check whether one audio buffer is ready, otherwise wait for next
 	// frame to perform mixing.
@@ -363,19 +388,20 @@ void Game_LateUpdate(AF_ECS* _ecs){
 
 
 void HandleInput(AF_Input* _input, AF_ECS* _ecs){
+    
+        // player 1
+        Vec2 player1Stick = {_input->stick_x, _input->stick_y};
+        UpdatePlayerMovement(player1Stick, player1Entity);
+        // Player 2
+        Vec2 player2Stick = {_input->stick_x2, _input->stick_y2};
+        UpdatePlayerMovement(player2Stick, player2Entity);
+        // Player 3
+        Vec2 player3Stick = {_input->stick_x3, _input->stick_y3};
+        UpdatePlayerMovement(player3Stick, player3Entity);
+        // Player 4
+        Vec2 player4Stick = {_input->stick_x4, _input->stick_y4};
+        UpdatePlayerMovement(player4Stick, player4Entity);
 
-    // player 1
-    Vec2 player1Stick = {_input->stick_x, _input->stick_y};
-    UpdatePlayerMovement(player1Stick, player1Entity);
-    // Player 2
-    Vec2 player2Stick = {_input->stick_x2, _input->stick_y2};
-    UpdatePlayerMovement(player2Stick, player2Entity);
-    // Player 3
-    Vec2 player3Stick = {_input->stick_x3, _input->stick_y3};
-    UpdatePlayerMovement(player3Stick, player3Entity);
-    // Player 4
-    Vec2 player4Stick = {_input->stick_x4, _input->stick_y4};
-    UpdatePlayerMovement(player4Stick, player4Entity);
 }
 
 
@@ -389,15 +415,77 @@ void Game_SetupEntities(AF_ECS* _ecs){
     // Create God
 	
 	Vec3 godPos = {0, 5, -12};
-	Vec3 godScale = {5,5,5};
+	Vec3 godScale = {10,10,10};
     godEntity = CreatePrimative(_ecs, godPos, godScale, AF_MESH_TYPE_SPHERE, AABB, Game_OnGodTrigger);
 	//godEntity->transform->pos = godPos;
 	//godEntity->transform->scale = godScale;
 	//godEntity->collider->boundingVolume = Vec3_MULT_SCALAR(godScale, 2);
-    godEntity->mesh->material.textureID = 4;
+    godEntity->mesh->material.textureID = 9;
 	godEntity->collider->showDebug = TRUE;
 	godEntity->rigidbody->inverseMass = 0;
 	godEntity->rigidbody->isKinematic = TRUE;
+
+
+    Vec3 godeye1Pos = {-2.5, 10, -12};
+	Vec3 godeye1Scale = {1,1,1};
+    godEye1 = CreateCube(_ecs);//CreatePrimative(_ecs, godeye1Pos, godeye1Scale, AF_MESH_TYPE_SPHERE, AABB, Game_OnTrigger);
+    godEye1->transform->pos = godeye1Pos;
+    godEye1->transform->scale = godeye1Scale;
+    godEye1->rigidbody->inverseMass = 0;
+    godEye1->mesh->material.textureID = 0;
+    godEye1->mesh->isAnimating = TRUE;
+
+    Vec3 godeye2Pos = {2.5, 10, -12};
+	Vec3 godeye2Scale = {1,1,1};
+    godEye2 = CreateCube(_ecs);//CreatePrimative(_ecs, godeye2Pos, godeye2Scale, AF_MESH_TYPE_SPHERE, AABB, Game_OnTrigger);
+    godEye2->transform->pos = godeye2Pos;
+    godEye2->transform->scale = godeye2Scale;
+    godEye2->rigidbody->inverseMass = 0;
+    godEye2->mesh->material.textureID = 1;
+    godEye2->mesh->isAnimating = TRUE;
+
+    Vec3 godeye3Pos = {2.5, 5, -12};
+	Vec3 godeye3Scale = {1,1,1};
+    godEye3 = CreateCube(_ecs);//CreatePrimative(_ecs, godeye2Pos, godeye2Scale, AF_MESH_TYPE_SPHERE, AABB, Game_OnTrigger);
+    godEye3->transform->pos = godeye3Pos;
+    godEye3->transform->scale = godeye3Scale;
+    godEye3->rigidbody->inverseMass = 0;
+    godEye3->mesh->material.textureID = 2;
+    godEye3->mesh->isAnimating = TRUE;
+
+    Vec3 godeye4Pos = {-2.5, 5, -12};
+	Vec3 godeye4Scale = {1,1,1};
+    godEye4 = CreateCube(_ecs);//CreatePrimative(_ecs, godeye2Pos, godeye2Scale, AF_MESH_TYPE_SPHERE, AABB, Game_OnTrigger);
+    godEye4->transform->pos = godeye4Pos;
+    godEye4->transform->scale = godeye4Scale;
+    godEye4->rigidbody->inverseMass = 0;
+    godEye4->mesh->material.textureID = 3;
+    godEye4->mesh->isAnimating = TRUE;
+
+    // God eye inner
+    /*
+    Vec3 godeyeInner1Pos = {-20.5, 10, 0};
+	Vec3 godeyeInner1Scale = {3,3,3};
+    godEyeInner1 =  CreateCube(_ecs);
+    godEyeInner1->collider->boundingVolume = Vec3_MULT_SCALAR(godeyeInner1Scale, 2);
+    godEyeInner1->transform->pos = godeyeInner1Pos;
+	godEyeInner1->transform->scale = godeyeInner1Scale;
+    
+    godEyeInner1->rigidbody->inverseMass = 0;
+    godEyeInner1->rigidbody->isKinematic = TRUE;
+    godEyeInner1->mesh->material.textureID = 1;
+
+    Vec3 godeyeInner2Pos = {2.5, 10, -15};
+	Vec3 godeyeInner2Scale = {4,4,4};
+    godEyeInner2 =  CreateCube(_ecs);
+    godEyeInner2->transform->pos = godeyeInner2Pos;
+	godEyeInner2->transform->scale = godeyeInner2Scale;
+    godEyeInner2->rigidbody->inverseMass = 0;
+    godEyeInner2->rigidbody->isKinematic = TRUE;
+    godEyeInner2->mesh->material.textureID = 8;
+   */
+
+    //AF_Entity* godMouth;
 
     
 	// ---------Create Player1------------------
@@ -499,7 +587,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
 	groundPlaneEntity = CreateCube(_ecs);
     //groundPlaneEntity->mesh->material.textureID = groundPlaneTextureID;
 	Vec3 planePos = {0, -2, 0};
-	Vec3 planeScale = {40,1,20};
+	Vec3 planeScale = {40,1,40};
 	groundPlaneEntity->transform->pos = planePos;
 	groundPlaneEntity->transform->scale = planeScale;
 	groundPlaneEntity->collider->boundingVolume = Vec3_MULT_SCALAR(planeScale, 2);
@@ -555,56 +643,56 @@ void Game_SetupEntities(AF_ECS* _ecs){
 
     // Bucket 1
     bucket1 = CreateCube(_ecs);
-	Vec3 bucket1Pos = {-20, 2, -20};
+	Vec3 bucket1Pos = {-20, 2, -15};
 	Vec3 bucket1Scale = {1,1,1};
 	bucket1->transform->pos = bucket1Pos;
 	bucket1->transform->scale = bucket1Scale;
 	bucket1->collider->boundingVolume = Vec3_MULT_SCALAR(bucket1Scale, 2);
 	bucket1->collider->showDebug = TRUE;
-    bucket1->mesh->material.textureID = 8;
+    bucket1->mesh->material.textureID = 0;
 	bucket1->rigidbody->inverseMass = 0;
 	bucket1->rigidbody->isKinematic = TRUE;
-    bucket1->collider->collision.callback = Game_OnBucketTrigger;
+    bucket1->collider->collision.callback = Game_OnBucket1Trigger;
 
     // Bucket 2
     bucket2 = CreateCube(_ecs);
-	Vec3 bucket2Pos = {20, 2, -20};
+	Vec3 bucket2Pos = {20, 2, -15};
 	Vec3 bucket2Scale = {1,1,1};
 	bucket2->transform->pos = bucket2Pos;
 	bucket2->transform->scale = bucket2Scale;
 	bucket2->collider->boundingVolume = Vec3_MULT_SCALAR(bucket2Scale, 2);
 	bucket2->collider->showDebug = TRUE;
-    bucket2->mesh->material.textureID = 9;
+    bucket2->mesh->material.textureID = 1;
 	bucket2->rigidbody->inverseMass = 0;
 	bucket2->rigidbody->isKinematic = TRUE;
-    bucket2->collider->collision.callback = Game_OnBucketTrigger;
+    bucket2->collider->collision.callback = Game_OnBucket2Trigger;
 
 
     // Bucket 3
     bucket3 = CreateCube(_ecs);
-	Vec3 bucket3Pos = {-20, 2, 20};
+	Vec3 bucket3Pos = {-20, 2, 15};
 	Vec3 bucket3Scale = {1,1,1};
 	bucket3->transform->pos = bucket3Pos;
 	bucket3->transform->scale = bucket3Scale;
 	bucket3->collider->boundingVolume = Vec3_MULT_SCALAR(bucket3Scale, 2);
 	bucket3->collider->showDebug = TRUE;
-    bucket3->mesh->material.textureID = 8;
+    bucket3->mesh->material.textureID = 2;
 	bucket3->rigidbody->inverseMass = 0;
 	bucket3->rigidbody->isKinematic = TRUE;
-    bucket3->collider->collision.callback = Game_OnBucketTrigger;
+    bucket3->collider->collision.callback = Game_OnBucket3Trigger;
 
     // Bucket 4
     bucket4 = CreateCube(_ecs);
-	Vec3 bucket4Pos = {20, 2, 20};
+	Vec3 bucket4Pos = {20, 2, 15};
 	Vec3 bucket4Scale = {1,1,1};
 	bucket4->transform->pos = bucket4Pos;
 	bucket4->transform->scale = bucket4Scale;
 	bucket4->collider->boundingVolume = Vec3_MULT_SCALAR(bucket4Scale, 2);
 	bucket4->collider->showDebug = TRUE;
-    bucket4->mesh->material.textureID = 8;
+    bucket4->mesh->material.textureID = 3;
 	bucket4->rigidbody->inverseMass = 0;
 	bucket4->rigidbody->isKinematic = TRUE;
-    bucket4->collider->collision.callback = Game_OnBucketTrigger;
+    bucket4->collider->collision.callback = Game_OnBucket4Trigger;
 
 
 
@@ -623,17 +711,31 @@ void Game_SetupEntities(AF_ECS* _ecs){
     villager1->collider->collision.callback = Game_OnCollision;
 
 
-
 	// Setup Audio
 	// TODO: put into audio function
-	//audio_init(44100, 4);
-	//mixer_init(16);  // Initialize up to 16 channels
+	audio_init(44100, 4);
+	mixer_init(16);  // Initialize up to 16 channels
 
-	//AF_AudioClip musicAudioClip = {0, musicPath, 12800};
-	//laserSoundEntity = CreateAudioEntity(_ecs, musicAudioClip, CHANNEL_MUSIC, (void*)&sfx_music, TRUE);
+	AF_AudioClip musicAudioClip = {0, musicFXPath, 12800};
+	laserSoundEntity = CreateAudioEntity(_ecs, musicAudioClip, CHANNEL_MUSIC, (void*)&sfx_music, TRUE);
 
+	AF_AudioClip sfx1AudioClip = {0, laserFXPath, 128000};
+	laserSoundEntity = CreateAudioEntity(_ecs, sfx1AudioClip, CHANNEL_SFX1, (void*)&sfx_laser, FALSE);
+
+	AF_AudioClip sfx2AudioClip = {0, cannonFXPath, 128000};
+	cannonSoundEntity = CreateAudioEntity(_ecs, sfx2AudioClip, CHANNEL_SFX2, (void*)&sfx_cannon, FALSE);
 
 	
+
+	bool music = false;
+	int music_frequency = sfx_music.wave.frequency;
+
+	music = !music;
+	if (music) {
+		wav64_play(&sfx_music, CHANNEL_MUSIC);
+		music_frequency = sfx_music.wave.frequency;
+	}
+
 	
 	// Create test Text
     int font1 = 1;
@@ -711,13 +813,13 @@ void Game_SetupEntities(AF_ECS* _ecs){
 	Vec2 countdownTimerLabelTextBounds = {countdownTimerBox_width, countdownTimerBox_height};
     countdownTimerLabelEntity->text->screenPos = countdownTimerLabelTextScreenPos;
 	countdownTimerLabelEntity->text->textBounds = countdownTimerLabelTextBounds;
-
-
-    // Create Player 1 card
+ // Create Player 1 card
     Vec2 playe1CountLabelPos = {20, 180};
-    Vec2 playe1CountLabelSize = {50, 50};
+    Vec2 playe1CountLabelSize = {320, 50};
     player1CountEntity = Game_UI_CreatePlayerCountLabel(_ecs, player1CharBuff, font2, fontPath2, whiteColor, playe1CountLabelPos, playe1CountLabelSize);
 
+
+   
     Vec2 player2CountLabelPos = {100, 180};
     Vec2 player2CountLabelSize = {50, 50};
     player2CountEntity = Game_UI_CreatePlayerCountLabel(_ecs, player2CharBuff, font2, fontPath2, whiteColor, player2CountLabelPos, player2CountLabelSize);
@@ -748,15 +850,52 @@ void Game_SetupEntities(AF_ECS* _ecs){
     Vec2 mainMenuSubTitlePos = {80, 140};
     Vec2 mainMenuSubTitleSize = {320, 50};
     mainMenuTitleEntity = Game_UI_CreatePlayerCountLabel(_ecs, mainMenuTitleCharBuffer, font2, fontPath2, whiteColor, gameOverTitlePos, mainMenuTitleSize);
+
     mainMenuSubTitleEntity = Game_UI_CreatePlayerCountLabel(_ecs, mainMenuSubTitleCharBuffer, font2, fontPath2, whiteColor, mainMenuSubTitlePos, mainMenuSubTitleSize);
     // disable at the start
 	mainMenuTitleEntity->text->isShowing = FALSE;
     mainMenuSubTitleEntity->text->isShowing = FALSE;
-
+   /**/
 
 
 }
 
+
+void SpawnBucket(){
+    int upper = 3;
+    int lower = 0;
+    int randomNum = (rand() % (upper + - lower) + lower);
+    debugf("Random number %i \n", randomNum);
+    if(randomNum == 0){
+        currentBucket = 0;
+        godEntity->mesh->material.textureID = 0;
+        bucket1->mesh->material.textureID = 0;
+        bucket2->mesh->material.textureID = 5;
+        bucket3->mesh->material.textureID = 5;
+        bucket4->mesh->material.textureID = 5;
+    }else if( randomNum == 1){
+        currentBucket = 1;
+        godEntity->mesh->material.textureID = 1;
+        bucket1->mesh->material.textureID = 5;
+        bucket2->mesh->material.textureID = 1;
+        bucket3->mesh->material.textureID = 5;
+        bucket4->mesh->material.textureID = 5;
+    }else if( randomNum == 2){
+        currentBucket = 2;
+        godEntity->mesh->material.textureID = 2;
+        bucket1->mesh->material.textureID = 5;
+        bucket2->mesh->material.textureID = 5;
+        bucket3->mesh->material.textureID = 2;
+        bucket4->mesh->material.textureID = 5;
+    }else if( randomNum == 3){
+        currentBucket = 3;
+        godEntity->mesh->material.textureID = 3;
+        bucket1->mesh->material.textureID = 5;
+        bucket2->mesh->material.textureID = 5;
+        bucket3->mesh->material.textureID = 5;
+        bucket4->mesh->material.textureID = 3;
+    }
+}
 
 
 void Game_OnCollision(AF_Collision* _collision){
@@ -796,8 +935,6 @@ void Game_OnTrigger(AF_Collision* _collision){
 	debugf("Game_OnTrigger: Entity %lu hit Entity %lu \n", entity1ID, entity2ID);
 	
 	// Play sound
-	//AF_Audio_Play(cannonSoundEntity->audioSource, 1.0f, FALSE);
-	//wav64_play(&sfx_cannon, CHANNEL_SFX1);
 }
 
 
@@ -822,6 +959,16 @@ void Game_OnGodTrigger(AF_Collision* _collision){
         entity2->playerData->carryingEntity = 0;
         Vec3 poolLocation = {100, 0,0};
         villager1->transform->pos = poolLocation;
+        // randomly call for a colour bucket
+        SpawnBucket();
+        // play sound
+		AF_Audio_Play(cannonSoundEntity->audioSource, 0.5f, FALSE);
+
+        // clear the players from carrying
+        player1Entity->playerData->isCarrying = FALSE;
+        player2Entity->playerData->isCarrying = FALSE;
+        player3Entity->playerData->isCarrying = FALSE;
+        player4Entity->playerData->isCarrying = FALSE;
     }
     
 	
@@ -830,7 +977,10 @@ void Game_OnGodTrigger(AF_Collision* _collision){
 	//wav64_play(&sfx_cannon, CHANNEL_SFX1);
 }
 
-void Game_OnBucketTrigger(AF_Collision* _collision){
+void Game_OnBucket1Trigger(AF_Collision* _collision){
+    if(currentBucket != 0){
+        return;
+    }
 	AF_Entity* entity1 =  _collision->entity1;
 	AF_Entity* entity2 =  _collision->entity2;
 	uint32_t entity1ID = AF_ECS_GetID(entity1->id_tag);
@@ -846,14 +996,110 @@ void Game_OnBucketTrigger(AF_Collision* _collision){
         if(villager1->playerData->isCarried == FALSE){
             debugf("OnBucketTrigger: carry villager \n");
             playerData2->carryingEntity = villager1->id_tag;
+            villager1->mesh->material.textureID = godEntity->mesh->material.textureID;//entity2->mesh->material.textureID;
             playerData2->isCarrying = TRUE;
+            // play sound
+		    AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
         }
-        
-    //}
-        
-
-
 }
+
+
+void Game_OnBucket2Trigger(AF_Collision* _collision){
+    if(currentBucket != 1){
+        return;
+    }
+	AF_Entity* entity1 =  _collision->entity1;
+	AF_Entity* entity2 =  _collision->entity2;
+	uint32_t entity1ID = AF_ECS_GetID(entity1->id_tag);
+	uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
+	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
+	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
+	debugf("Game_OnBucketTrigger:  \n");
+    // attatch next villager
+    AF_CPlayerData* playerData1 = entity1->playerData;
+    AF_CPlayerData* playerData2 = entity2->playerData;
+    //if((AF_Component_GetHas(playerData1->enabled) == TRUE) && (AF_Component_GetEnabled(playerData1->enabled) == TRUE)){
+        // attatch the villager to this player
+        if(villager1->playerData->isCarried == FALSE){
+            debugf("OnBucketTrigger: carry villager \n");
+            playerData2->carryingEntity = villager1->id_tag;
+            villager1->mesh->material.textureID = godEntity->mesh->material.textureID;
+            playerData2->isCarrying = TRUE;
+            // play sound
+		    AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
+        }
+}
+
+void Game_OnBucket3Trigger(AF_Collision* _collision){
+    if(currentBucket != 2){
+        return;
+    }
+	AF_Entity* entity1 =  _collision->entity1;
+	AF_Entity* entity2 =  _collision->entity2;
+	uint32_t entity1ID = AF_ECS_GetID(entity1->id_tag);
+	uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
+	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
+	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
+	debugf("Game_OnBucketTrigger:  \n");
+    // attatch next villager
+    AF_CPlayerData* playerData1 = entity1->playerData;
+    AF_CPlayerData* playerData2 = entity2->playerData;
+    //if((AF_Component_GetHas(playerData1->enabled) == TRUE) && (AF_Component_GetEnabled(playerData1->enabled) == TRUE)){
+        // attatch the villager to this player
+        if(villager1->playerData->isCarried == FALSE){
+            debugf("OnBucketTrigger: carry villager \n");
+            playerData2->carryingEntity = villager1->id_tag;
+            villager1->mesh->material.textureID = godEntity->mesh->material.textureID;
+            playerData2->isCarrying = TRUE;
+            // play sound
+		    AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
+        }
+}
+
+void Game_OnBucket4Trigger(AF_Collision* _collision){
+    if(currentBucket != 3){
+        return;
+    }
+	AF_Entity* entity1 =  _collision->entity1;
+	AF_Entity* entity2 =  _collision->entity2;
+	uint32_t entity1ID = AF_ECS_GetID(entity1->id_tag);
+	uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
+	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
+	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
+	debugf("Game_OnBucketTrigger:  \n");
+    // attatch next villager
+    AF_CPlayerData* playerData1 = entity1->playerData;
+    AF_CPlayerData* playerData2 = entity2->playerData;
+    //if((AF_Component_GetHas(playerData1->enabled) == TRUE) && (AF_Component_GetEnabled(playerData1->enabled) == TRUE)){
+        // attatch the villager to this player
+        if(villager1->playerData->isCarried == FALSE){
+            debugf("OnBucketTrigger: carry villager \n");
+            playerData2->carryingEntity = villager1->id_tag;
+            villager1->mesh->material.textureID = godEntity->mesh->material.textureID;
+            playerData2->isCarrying = TRUE;
+            // play sound
+		    AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
+        }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void UpdateText(AF_ECS* _ecs){
     // God eat count
@@ -878,18 +1124,18 @@ void UpdatePlayerScoreText(){
     godEatCountLabelEntity->text->isDirty = TRUE;
 
 
-    sprintf(player1CharBuff, "%i", (int)player1Entity->playerData->score);
-    sprintf(player2CharBuff, "%i", (int)player2Entity->playerData->score);
-    sprintf(player3CharBuff, "%i", (int)player3Entity->playerData->score);
-    sprintf(player4CharBuff, "%i", (int)player4Entity->playerData->score);
+    sprintf(player1CharBuff, "%i                 %i                  %i                  %i", (int)player1Entity->playerData->score, (int)player2Entity->playerData->score, (int)player3Entity->playerData->score, (int)player4Entity->playerData->score);
+    //sprintf(player2CharBuff, "%i", (int)player2Entity->playerData->score);
+    //sprintf(player3CharBuff, "%i", (int)player3Entity->playerData->score);
+    //sprintf(player4CharBuff, "%i", (int)player4Entity->playerData->score);
     player1CountEntity->text->text = player1CharBuff;
     player1CountEntity->text->isDirty = TRUE;
-    player2CountEntity->text->text = player2CharBuff;
-    player2CountEntity->text->isDirty = TRUE;
-    player3CountEntity->text->text = player3CharBuff;
-    player3CountEntity->text->isDirty = TRUE;
-    player4CountEntity->text->text = player4CharBuff;
-    player4CountEntity->text->isDirty = TRUE;
+    //player2CountEntity->text->text = player2CharBuff;
+    //player2CountEntity->text->isDirty = TRUE;
+    //player3CountEntity->text->text = player3CharBuff;
+    //player3CountEntity->text->isDirty = TRUE;
+    //player4CountEntity->text->text = player4CharBuff;
+    //player4CountEntity->text->isDirty = TRUE;
     //debugf("updateplayerScore: %s %i \n", player1CharBuff, player1Entity->playerData->score);
 }
 
@@ -920,7 +1166,7 @@ void RenderMainMenu(AF_Input* _input, AF_Time* _time){
         player4CountEntity->playerData->score = 0;
 
         // reset the visible text
-        UpdatePlayerScoreText();
+        //UpdatePlayerScoreText();
         // Header bar
         godEatCountLabelEntity->text->isShowing = FALSE;
         // gods count reset
@@ -933,7 +1179,10 @@ void RenderMainMenu(AF_Input* _input, AF_Time* _time){
 
         // detect start button pressed
         if(_input->keys[2].pressed == TRUE){
+
+            UpdatePlayerScoreText();
             gameState = GAME_STATE_PLAYING;
+
         }
         
         
@@ -953,7 +1202,7 @@ void RenderMainMenu(AF_Input* _input, AF_Time* _time){
         }
 
     // Player Counts
-        //player1CountEntity->text->isShowing = TRUE;
+        player1CountEntity->text->isShowing = TRUE;
         //player2CountEntity->text->isShowing = TRUE;
         //player3CountEntity->text->isShowing = TRUE;
         //player4CountEntity->text->isShowing = TRUE;
