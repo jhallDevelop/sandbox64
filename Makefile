@@ -42,6 +42,11 @@ filesystem/%.sprite: assets/%.png
 	@echo "    [SPRITE] $@"
 	@$(N64_MKSPRITE) $(MKSPRITE_FLAGS) -o filesystem "$<"
 
+filesystem/%.font64: assets/%.ttf
+	@mkdir -p $(dir $@)
+	@echo "    [FONT] $@"
+	$(N64_MKFONT) $(MKFONT_FLAGS) -o filesystem "$<"
+
 
 
 $(BUILD_DIR)/$(NAME).dfs: $(assets_conv)

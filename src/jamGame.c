@@ -16,6 +16,7 @@
 #include <GL/glu.h>
 #include <GL/gl_integration.h>
 #include "PlayerController.h"
+#include "AF_Renderer.h"
 // Sounds
 #define COUNT_DOWN_TIME 120
 #define GODS_EAT_COUNT 10
@@ -95,8 +96,9 @@ char gameOverSubTitleWinCharBuffer[80] = "You have succeded to contain the the g
 
 
 // Text / Font
-const char* fontPath = "rom:/Pacifico.font64";
-const char* fontPath2 = "rom:/FerriteCoreDX.font64";
+const char* fontPath = "rom:/Electrolize-Regular.font64";//"rom:/Pacifico.font64";
+const char* fontPath2 = "rom:/ZenDots-Regular.font64";//"rom:/FerriteCoreDX.font64";
+//const char* titleFontPath = "rom:/ZenDots-Regular.font64";
 
 // sprites
 const char* animatedSpritePath = "";
@@ -138,8 +140,9 @@ enum GAME_STATE{
 
 enum GAME_STATE gameState = GAME_STATE_PLAYING;
 
+// SpriteSheet
 //static sprite_t *sheet_knight;
-//const char* sheet_knightPath = "rom:/knight.sprite";
+const char* player1SpriteSheetPath = "rom:/knight.sprite";
 
 // forward decalred functions
 void HandleInput(AF_Input* _input, AF_ECS* _ecs);
@@ -391,60 +394,100 @@ void Game_SetupEntities(AF_ECS* _ecs){
 	//godEntity->transform->pos = godPos;
 	//godEntity->transform->scale = godScale;
 	//godEntity->collider->boundingVolume = Vec3_MULT_SCALAR(godScale, 2);
-    godEntity->mesh->material.textureID = 0;
+    godEntity->mesh->material.textureID = 4;
 	godEntity->collider->showDebug = TRUE;
 	godEntity->rigidbody->inverseMass = 0;
 	godEntity->rigidbody->isKinematic = TRUE;
 
     
-	// Create Player1
+	// ---------Create Player1------------------
 	player1Entity = CreateCube(_ecs);
+    player1Entity->mesh->material.textureID = 0;
 	Vec3 player1Pos = {2.5, 1.5, -5};
 	Vec3 player1Scale = {1,1,1};
 	player1Entity->transform->pos = player1Pos;
 	player1Entity->transform->scale = player1Scale;
 	player1Entity->collider->boundingVolume = Vec3_MULT_SCALAR(player1Scale, 2);
 	player1Entity->collider->showDebug = FALSE;
-    player1Entity->mesh->material.textureID = 0;
 	player1Entity->rigidbody->inverseMass = 1;
 	player1Entity->rigidbody->isKinematic = TRUE;
     *player1Entity->playerData = AF_CPlayerData_ADD();
 
+    // Create sprites
+     /*
+	Vec2 spritePos = {10, 20};
+	Vec2 spriteSize = {120, 80};
+	uint8_t spriteColor[4] = {255, 0, 0, 255};
+	Vec2 spriteSheetSize = {spriteSize.x *3,spriteSize.y * 1};
+	//animatedSprite = CreateSprite(_ecs, sheet_knightPath, spritePos, spriteSize, spriteColor, 1, spriteSheetSize, (void*)sheet_knight);
+   
+    AF_CSprite* player1Sprite = player1Entity->sprite;
+	*player1Sprite = AF_CSprite_ADD();
+	player1Sprite->spritePath = player1SpriteSheetPath;//_spritePath;
+	player1Sprite->pos = spritePos;
+	player1Sprite->size = spriteSize;
+	// TODO: fix this
+	player1Sprite->spriteColor[0] = 255;
+	player1Sprite->spriteColor[1] = 0;
+	player1Sprite->spriteColor[2] = 0;
+	player1Sprite->spriteColor[3] = 255;
+    
+	player1Sprite->animationFrames = 3;//_animationFrames;
+	player1Sprite->spriteSheetSize = spriteSheetSize;
+
+	
+	//Load Sprite Sheet
+    player1Sprite->spriteData = sprite_load(player1Sprite->spritePath);
+	if(player1Sprite->spriteData == NULL){
+		debugf("Game: CreateSprite: Failed to load sprite");
+	}
+	player1Sprite->animationFrames = 3;
+	player1Sprite->animationSpeed = (1.0f) * 1000000; // Convert to microseconds if timer_ticks() is in microseconds ;		// about 33 milliseconds / 30fps
+	player1Sprite->loop = FALSE;
+    */
+
+
+
     // Create Player2
+    //uint32_t player2TextureID = AF_LoadTexture("rom:/green.sprite");
 	player2Entity = CreateCube(_ecs);
+    //player2Entity->mesh->material.textureID = player2TextureID;
 	Vec3 player2Pos = {-2.5, 1.5, -5};
 	Vec3 player2Scale = {1,1,1};
+    player2Entity->mesh->material.textureID = 1;
 	player2Entity->transform->pos = player2Pos;
 	player2Entity->transform->scale = player2Scale;
 	player2Entity->collider->boundingVolume = Vec3_MULT_SCALAR(player2Scale, 2);
 	player2Entity->collider->showDebug = FALSE;
-    player2Entity->mesh->material.textureID = 0;
+    //player2Entity->mesh->material.textureID = 0;
 	player2Entity->rigidbody->inverseMass = 1;
 	player2Entity->rigidbody->isKinematic = TRUE;
     *player2Entity->playerData = AF_CPlayerData_ADD();
 
     // Create Player3
 	player3Entity = CreateCube(_ecs);
+    player3Entity->mesh->material.textureID = 2;
 	Vec3 player3Pos = {-2.5, 1.5, 5};
 	Vec3 player3Scale = {1,1,1};
 	player3Entity->transform->pos = player3Pos;
 	player3Entity->transform->scale = player3Scale;
 	player3Entity->collider->boundingVolume = Vec3_MULT_SCALAR(player3Scale, 2);
 	player3Entity->collider->showDebug = FALSE;
-    player3Entity->mesh->material.textureID = 0;
+    //player3Entity->mesh->material.textureID = 0;
 	player3Entity->rigidbody->inverseMass = 1;
 	player3Entity->rigidbody->isKinematic = TRUE;
     *player3Entity->playerData = AF_CPlayerData_ADD();
 
     // Create Player4
 	player4Entity = CreateCube(_ecs);
+    player4Entity->mesh->material.textureID = 3;
 	Vec3 player4Pos = {2.5, 1.5, 5};
 	Vec3 player4Scale = {1,1,1};
 	player4Entity->transform->pos = player4Pos;
 	player4Entity->transform->scale = player4Scale;
 	player4Entity->collider->boundingVolume = Vec3_MULT_SCALAR(player4Scale, 2);
 	player4Entity->collider->showDebug = FALSE;
-    player4Entity->mesh->material.textureID = 0;
+    //player4Entity->mesh->material.textureID = 0;
 	player4Entity->rigidbody->inverseMass = 1;
 	player4Entity->rigidbody->isKinematic = TRUE;
     *player4Entity->playerData = AF_CPlayerData_ADD();
@@ -452,84 +495,86 @@ void Game_SetupEntities(AF_ECS* _ecs){
 
 	//=========ENVIRONMENT========
 	// Create Plane
+    //uint32_t groundPlaneTextureID = AF_LoadTexture("rom:/checker.sprite");
 	groundPlaneEntity = CreateCube(_ecs);
+    //groundPlaneEntity->mesh->material.textureID = groundPlaneTextureID;
 	Vec3 planePos = {0, -2, 0};
-	Vec3 planeScale = {20,1,20};
+	Vec3 planeScale = {40,1,20};
 	groundPlaneEntity->transform->pos = planePos;
 	groundPlaneEntity->transform->scale = planeScale;
 	groundPlaneEntity->collider->boundingVolume = Vec3_MULT_SCALAR(planeScale, 2);
 	groundPlaneEntity->collider->showDebug = FALSE;
-    groundPlaneEntity->mesh->material.textureID = 0;
+    groundPlaneEntity->mesh->material.textureID = 7;
 	groundPlaneEntity->rigidbody->inverseMass = 0;
 
     // Create Left Wall
     float wallHeight = 3;
 	leftWall = CreateCube(_ecs);
-	Vec3 leftWallPos = {-20, 0, 0};
-	Vec3 leftWallScale = {1,wallHeight,20};
+	Vec3 leftWallPos = {-40, 0, 0};
+	Vec3 leftWallScale = {1,wallHeight,40};
 	leftWall->transform->pos = leftWallPos;
 	leftWall->transform->scale = leftWallScale;
 	leftWall->collider->boundingVolume = Vec3_MULT_SCALAR(leftWallScale, 2);
 	leftWall->collider->showDebug = FALSE;
-    leftWall->mesh->material.textureID = 0;
+    leftWall->mesh->material.textureID = 8;
 	leftWall->rigidbody->inverseMass = 0;
 
     // Create Right Wall
 	rightWall = CreateCube(_ecs);
-	Vec3 rightWallPos = {20, 0, 0};
-	Vec3 rightWallScale = {1,wallHeight,20};
+	Vec3 rightWallPos = {40, 0, 0};
+	Vec3 rightWallScale = {1,wallHeight,40};
     rightWall->transform->pos = rightWallPos;
 	rightWall->transform->scale = rightWallScale;
 	rightWall->collider->boundingVolume = Vec3_MULT_SCALAR(rightWallScale, 2);
 	rightWall->collider->showDebug = FALSE;
-    rightWall->mesh->material.textureID = 0;
+    rightWall->mesh->material.textureID = 8;
 	rightWall->rigidbody->inverseMass = 0;
 
     // Create Back Wall
 	backWall = CreateCube(_ecs);
-	Vec3 backWallPos = {0, 0, -20};
-	Vec3 backWallScale = {20,wallHeight,1};
+	Vec3 backWallPos = {0, 0, -30};
+	Vec3 backWallScale = {40,wallHeight,1};
     backWall->transform->pos = backWallPos;
 	backWall->transform->scale = backWallScale;
 	backWall->collider->boundingVolume = Vec3_MULT_SCALAR(backWallScale, 2);
 	backWall->collider->showDebug = FALSE;
-    rightWall->mesh->material.textureID = 0;
+    rightWall->mesh->material.textureID = 8;
 	backWall->rigidbody->inverseMass = 0;
 
     // Create Front Wall
 	frontWall = CreateCube(_ecs);
 	Vec3 frontWallPos = {0, 0, 20};
-	Vec3 frontWallScale = {20,wallHeight,1};
+	Vec3 frontWallScale = {40,wallHeight,1};
     frontWall->transform->pos = backWallPos;
 	frontWall->transform->scale = frontWallScale;
 	frontWall->collider->boundingVolume = Vec3_MULT_SCALAR(frontWallScale, 2);
 	frontWall->collider->showDebug = FALSE;
-    frontWall->mesh->material.textureID = 0;
+    frontWall->mesh->material.textureID = 8;
 	frontWall->rigidbody->inverseMass = 0;
 
 
     // Bucket 1
     bucket1 = CreateCube(_ecs);
-	Vec3 bucket1Pos = {-10, 2, -10};
+	Vec3 bucket1Pos = {-20, 2, -20};
 	Vec3 bucket1Scale = {1,1,1};
 	bucket1->transform->pos = bucket1Pos;
 	bucket1->transform->scale = bucket1Scale;
 	bucket1->collider->boundingVolume = Vec3_MULT_SCALAR(bucket1Scale, 2);
 	bucket1->collider->showDebug = TRUE;
-    bucket1->mesh->material.textureID = 0;
+    bucket1->mesh->material.textureID = 8;
 	bucket1->rigidbody->inverseMass = 0;
 	bucket1->rigidbody->isKinematic = TRUE;
     bucket1->collider->collision.callback = Game_OnBucketTrigger;
 
     // Bucket 2
     bucket2 = CreateCube(_ecs);
-	Vec3 bucket2Pos = {10, 2, -10};
+	Vec3 bucket2Pos = {20, 2, -20};
 	Vec3 bucket2Scale = {1,1,1};
 	bucket2->transform->pos = bucket2Pos;
 	bucket2->transform->scale = bucket2Scale;
 	bucket2->collider->boundingVolume = Vec3_MULT_SCALAR(bucket2Scale, 2);
 	bucket2->collider->showDebug = TRUE;
-    bucket2->mesh->material.textureID = 0;
+    bucket2->mesh->material.textureID = 9;
 	bucket2->rigidbody->inverseMass = 0;
 	bucket2->rigidbody->isKinematic = TRUE;
     bucket2->collider->collision.callback = Game_OnBucketTrigger;
@@ -537,26 +582,26 @@ void Game_SetupEntities(AF_ECS* _ecs){
 
     // Bucket 3
     bucket3 = CreateCube(_ecs);
-	Vec3 bucket3Pos = {-10, 2, 10};
+	Vec3 bucket3Pos = {-20, 2, 20};
 	Vec3 bucket3Scale = {1,1,1};
 	bucket3->transform->pos = bucket3Pos;
 	bucket3->transform->scale = bucket3Scale;
 	bucket3->collider->boundingVolume = Vec3_MULT_SCALAR(bucket3Scale, 2);
 	bucket3->collider->showDebug = TRUE;
-    bucket3->mesh->material.textureID = 0;
+    bucket3->mesh->material.textureID = 8;
 	bucket3->rigidbody->inverseMass = 0;
 	bucket3->rigidbody->isKinematic = TRUE;
     bucket3->collider->collision.callback = Game_OnBucketTrigger;
 
     // Bucket 4
     bucket4 = CreateCube(_ecs);
-	Vec3 bucket4Pos = {10, 2, 10};
+	Vec3 bucket4Pos = {20, 2, 20};
 	Vec3 bucket4Scale = {1,1,1};
 	bucket4->transform->pos = bucket4Pos;
 	bucket4->transform->scale = bucket4Scale;
 	bucket4->collider->boundingVolume = Vec3_MULT_SCALAR(bucket4Scale, 2);
 	bucket4->collider->showDebug = TRUE;
-    bucket4->mesh->material.textureID = 0;
+    bucket4->mesh->material.textureID = 8;
 	bucket4->rigidbody->inverseMass = 0;
 	bucket4->rigidbody->isKinematic = TRUE;
     bucket4->collider->collision.callback = Game_OnBucketTrigger;
@@ -572,7 +617,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
 	villager1->transform->scale = villager1Scale;
 	villager1->collider->boundingVolume = Vec3_MULT_SCALAR(villager1Scale, 2);
 	villager1->collider->showDebug = TRUE;
-    villager1->mesh->material.textureID = 0;
+    villager1->mesh->material.textureID = 8;
 	villager1->rigidbody->inverseMass = 0;
 	villager1->rigidbody->isKinematic = TRUE;
     villager1->collider->collision.callback = Game_OnCollision;
@@ -600,13 +645,13 @@ void Game_SetupEntities(AF_ECS* _ecs){
     whiteColor[3] = 255;
 
     AF_LoadFont(font1, fontPath, whiteColor);
-    AF_LoadFont(font2, fontPath2, whiteColor);
+    AF_LoadFont(font2, fontPath2, whiteColor); // title font
 	gameTitleEntity = AF_ECS_CreateEntity(_ecs);
 	*gameTitleEntity->text = AF_CText_ADD();
 
 	gameTitleEntity->text->text = titleText;
 	gameTitleEntity->text->fontID = 1;
-	gameTitleEntity->text->fontPath = fontPath;
+	gameTitleEntity->text->fontPath = fontPath2;
 
 	// Text Color
 	//gameTitleEntity->text->textColor = whiteColor;
@@ -700,10 +745,10 @@ void Game_SetupEntities(AF_ECS* _ecs){
     // Create Main Menu
     Vec2 mainMenuTitlePos = {120, 100};
     Vec2 mainMenuTitleSize = {320, 50};
-    Vec2 mainMenuSubTitlePos = {20, 140};
+    Vec2 mainMenuSubTitlePos = {80, 140};
     Vec2 mainMenuSubTitleSize = {320, 50};
     mainMenuTitleEntity = Game_UI_CreatePlayerCountLabel(_ecs, mainMenuTitleCharBuffer, font2, fontPath2, whiteColor, gameOverTitlePos, mainMenuTitleSize);
-    mainMenuSubTitleEntity = Game_UI_CreatePlayerCountLabel(_ecs, mainMenuSubTitleCharBuffer, font2, fontPath2, whiteColor, gameOverSubTitlePos, mainMenuSubTitleSize);
+    mainMenuSubTitleEntity = Game_UI_CreatePlayerCountLabel(_ecs, mainMenuSubTitleCharBuffer, font2, fontPath2, whiteColor, mainMenuSubTitlePos, mainMenuSubTitleSize);
     // disable at the start
 	mainMenuTitleEntity->text->isShowing = FALSE;
     mainMenuSubTitleEntity->text->isShowing = FALSE;
@@ -817,6 +862,8 @@ void UpdateText(AF_ECS* _ecs){
     // countdown timer
     sprintf(countdownTimerLabelText, "TIME %i", (int)countdownTimer);
     countdownTimerLabelEntity->text->text = countdownTimerLabelText;
+    // update the text
+    countdownTimerLabelEntity->text->isDirty = TRUE;
 
     
     //player1CountEntity->text->text = player1CharBuff;
@@ -828,6 +875,7 @@ void UpdateText(AF_ECS* _ecs){
 void UpdatePlayerScoreText(){
     sprintf(godsCountLabelText, "%i", godEatCount);
     godEatCountLabelEntity->text->text = godsCountLabelText;
+    godEatCountLabelEntity->text->isDirty = TRUE;
 
 
     sprintf(player1CharBuff, "%i", (int)player1Entity->playerData->score);
@@ -835,9 +883,13 @@ void UpdatePlayerScoreText(){
     sprintf(player3CharBuff, "%i", (int)player3Entity->playerData->score);
     sprintf(player4CharBuff, "%i", (int)player4Entity->playerData->score);
     player1CountEntity->text->text = player1CharBuff;
+    player1CountEntity->text->isDirty = TRUE;
     player2CountEntity->text->text = player2CharBuff;
+    player2CountEntity->text->isDirty = TRUE;
     player3CountEntity->text->text = player3CharBuff;
+    player3CountEntity->text->isDirty = TRUE;
     player4CountEntity->text->text = player4CharBuff;
+    player4CountEntity->text->isDirty = TRUE;
     //debugf("updateplayerScore: %s %i \n", player1CharBuff, player1Entity->playerData->score);
 }
 
