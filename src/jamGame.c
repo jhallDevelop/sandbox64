@@ -19,7 +19,7 @@
 #include "AF_Renderer.h"
 // Sounds
 #define COUNT_DOWN_TIME 120
-#define GODS_EAT_COUNT 10
+#define GODS_EAT_COUNT 2
 
 // ECS system
 AF_Entity* camera;
@@ -1125,6 +1125,7 @@ void UpdatePlayerScoreText(){
 
 
     sprintf(player1CharBuff, "%i                 %i                  %i                  %i", (int)player1Entity->playerData->score, (int)player2Entity->playerData->score, (int)player3Entity->playerData->score, (int)player4Entity->playerData->score);
+    debugf("playerScore %s \n", player1CharBuff);
     //sprintf(player2CharBuff, "%i", (int)player2Entity->playerData->score);
     //sprintf(player3CharBuff, "%i", (int)player3Entity->playerData->score);
     //sprintf(player4CharBuff, "%i", (int)player4Entity->playerData->score);
@@ -1160,10 +1161,7 @@ void RenderMainMenu(AF_Input* _input, AF_Time* _time){
         player4CountEntity->text->isShowing = FALSE;
 
         // playercounts reset
-        player1CountEntity->playerData->score = 0;
-        player2CountEntity->playerData->score = 0;
-        player3CountEntity->playerData->score = 0;
-        player4CountEntity->playerData->score = 0;
+        
 
         // reset the visible text
         //UpdatePlayerScoreText();
@@ -1180,9 +1178,21 @@ void RenderMainMenu(AF_Input* _input, AF_Time* _time){
         // detect start button pressed
         if(_input->keys[2].pressed == TRUE){
 
-            UpdatePlayerScoreText();
+            
             gameState = GAME_STATE_PLAYING;
-
+            player1Entity->playerData->score = 0;
+            player2Entity->playerData->score = 0;
+            player3Entity->playerData->score = 0;
+            player4Entity->playerData->score = 0;
+            player1CountEntity->playerData->score = 0;
+            player2CountEntity->playerData->score = 0;
+            player3CountEntity->playerData->score = 0;
+            player4CountEntity->playerData->score = 0;
+            player1Count = 0;
+            player2Count = 0;
+            player3Count = 0;
+            player4Count = 0;
+            UpdatePlayerScoreText();
         }
         
         
