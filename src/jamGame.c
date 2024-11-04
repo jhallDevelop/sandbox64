@@ -15,7 +15,6 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/gl_integration.h>
-
 #include "PlayerController.h"
 // Sounds
 
@@ -41,6 +40,22 @@ AF_Entity* gameTitleEntity;
 // Timer
 AF_Entity* godEatCountLabelEntity;
 AF_Entity* countdownTimerLabelEntity;
+int player1Count = 111;
+int player2Count = 222;
+int player3Count = 333;
+int player4Count = 444;
+
+// Player Counters
+AF_Entity* player1CountEntity;
+AF_Entity* player2CountEntity;
+AF_Entity* player3CountEntity;
+AF_Entity* player4CountEntity;
+
+// player counter char buffers
+char player1CharBuff[20] = "666";
+char player2CharBuff[20] = "666";
+char player3CharBuff[20] = "666";
+char player4CharBuff[20] = "666";
 
 // Pickup
 AF_Entity* bucket1;
@@ -80,7 +95,7 @@ wav64_t sfx_cannon, sfx_laser, sfx_music;
 //const char* soundFX1Path = "rom:/cannon.wav64";
 
 // Text
-const char *titleText = "oldGods64 - 0.00004\n";
+const char *titleText = "oldGods64 - 0.00005\n";
 char godsCountLabelText[20] = "666";
 char countdownTimerLabelText[20] = "6666";
 
@@ -116,6 +131,8 @@ AF_Entity* CreateCube(AF_ECS* _ecs);
 AF_Entity* CreateAudioEntity(AF_ECS* _ecs, AF_AudioClip _audioClip, uint8_t _channel, void* _waveData, BOOL _isLooping);
 AF_Entity* CreateSprite(AF_ECS* _ecs, const char* _spritePath, Vec2 _screenPos, Vec2 _size, uint8_t _color[4], char _animationFrames, Vec2 _spriteSheetSize, void* _spriteData);
 AF_Entity* CreatePrimative(AF_ECS* _ecs, Vec3 _pos, Vec3 _bounds, enum AF_MESH_TYPE _meshType, enum CollisionVolumeType _collisionType, void* _collisionCallback);
+AF_Entity* Game_UI_CreatePlayerCountLabel(AF_ECS* _ecs, char* _textBuff, int _fontID, const char* _fontPath, float _color[4], Vec2 _pos, Vec2 _size);
+void UpdatePlayerScoreText(AF_Entity* _entity, char _buff[20], int* _value);
 void Game_OnTrigger(AF_Collision* _collision);
 void Game_OnGodTrigger(AF_Collision* _collision);
 void Game_OnBucketTrigger(AF_Collision* _collision);
@@ -216,6 +233,20 @@ AF_Entity* CreateAudioEntity(AF_ECS* _ecs, AF_AudioClip _audioClip, uint8_t _cha
 	
 
 	return returnEntity;
+}
+
+AF_Entity* Game_UI_CreatePlayerCountLabel(AF_ECS* _ecs, char* _textBuff, int _fontID, const char* _fontPath, float _color[4], Vec2 _pos, Vec2 _size){
+   
+    AF_Entity* entity = AF_ECS_CreateEntity(_ecs);
+    *entity->text = AF_CText_ADD();
+	entity->text->text = _textBuff;//godsCountLabelText;
+	entity->text->fontID = 2;
+	entity->text->fontPath = _fontPath;
+    entity->text->fontID = _fontID;
+    entity->text->screenPos = _pos;
+	entity->text->textBounds = _size;
+    
+    return entity;
 }
 
 void Game_Awake(AF_ECS* _ecs){
@@ -396,7 +427,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
     *player4Entity->playerData = AF_CPlayerData_ADD();
 	
 
-	//====ENVIRONMENT========
+	//=========ENVIRONMENT========
 	// Create Plane
 	groundPlaneEntity = CreateCube(_ecs);
 	Vec3 planePos = {0, -2, 0};
@@ -613,6 +644,23 @@ void Game_SetupEntities(AF_ECS* _ecs){
     countdownTimerLabelEntity->text->screenPos = countdownTimerLabelTextScreenPos;
 	countdownTimerLabelEntity->text->textBounds = countdownTimerLabelTextBounds;
 
+
+    // Create Player 1 card
+    Vec2 playe1CountLabelPos = {20, 180};
+    Vec2 playe1CountLabelSize = {50, 50};
+    player1CountEntity = Game_UI_CreatePlayerCountLabel(_ecs, player1CharBuff, font2, fontPath2, whiteColor, playe1CountLabelPos, playe1CountLabelSize);
+
+    Vec2 player2CountLabelPos = {100, 180};
+    Vec2 player2CountLabelSize = {50, 50};
+    player2CountEntity = Game_UI_CreatePlayerCountLabel(_ecs, player2CharBuff, font2, fontPath2, whiteColor, player2CountLabelPos, player2CountLabelSize);
+
+    Vec2 player3CountLabelPos = {180, 180};
+    Vec2 player3CountLabelSize = {50, 50};
+    player3CountEntity = Game_UI_CreatePlayerCountLabel(_ecs, player3CharBuff, font2, fontPath2, whiteColor, player3CountLabelPos, player3CountLabelSize);
+
+    Vec2 player4CountLabelPos = {260, 180};
+    Vec2 player4CountLabelSize = {50, 50};
+    player4CountEntity = Game_UI_CreatePlayerCountLabel(_ecs, player4CharBuff, font2, fontPath2, whiteColor, player4CountLabelPos, player4CountLabelSize);
 	// Create sprites
     /*
 	Vec2 spritePos = {10, 20};
@@ -677,9 +725,22 @@ void Game_OnGodTrigger(AF_Collision* _collision){
 	uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
 	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
 	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
-	debugf("Game_GodTrigger: eat count %i \n", godEatCount);
+	
 
-    godEatCount++;
+    // if entity is carrying, eat and shift the villager into the distance
+    if(entity2->playerData->isCarrying == TRUE){
+        debugf("Game_GodTrigger: eat count %i \n", godEatCount);
+        godEatCount++;
+        
+        entity2->playerData->score ++;
+        UpdatePlayerScoreText(entity2, player1CharBuff, &entity2->playerData->score);
+
+        entity2->playerData->isCarrying = FALSE;
+        entity2->playerData->carryingEntity = 0;
+        Vec3 poolLocation = {100, 0,0};
+        villager1->transform->pos = poolLocation;
+    }
+    
 	
 	// Play sound
 	//AF_Audio_Play(cannonSoundEntity->audioSource, 1.0f, FALSE);
@@ -699,9 +760,12 @@ void Game_OnBucketTrigger(AF_Collision* _collision){
     AF_CPlayerData* playerData2 = entity2->playerData;
     //if((AF_Component_GetHas(playerData1->enabled) == TRUE) && (AF_Component_GetEnabled(playerData1->enabled) == TRUE)){
         // attatch the villager to this player
-        debugf("OnBucketTrigger: carry villager \n");
-        playerData2->carryingEntity = villager1->id_tag;
-        playerData2->isCarrying = TRUE;
+        if(villager1->playerData->isCarried == FALSE){
+            debugf("OnBucketTrigger: carry villager \n");
+            playerData2->carryingEntity = villager1->id_tag;
+            playerData2->isCarrying = TRUE;
+        }
+        
     //}
         
 
@@ -710,12 +774,32 @@ void Game_OnBucketTrigger(AF_Collision* _collision){
 
 void UpdateText(AF_ECS* _ecs){
     // God eat count
-    sprintf(godsCountLabelText, "%i", godEatCount);
-    godEatCountLabelEntity->text->text = godsCountLabelText;
+    
 
     // countdown timer
     sprintf(countdownTimerLabelText, "TIME %i", (int)countdownTimer);
     countdownTimerLabelEntity->text->text = countdownTimerLabelText;
+
+    //player1CountEntity->text->text = player1CharBuff;
+    // Update player counters
+    // player 1
+    
+}
+
+void UpdatePlayerScoreText(AF_Entity* _entity, char _buff[20], int* _value){
+    sprintf(godsCountLabelText, "%i", godEatCount);
+    godEatCountLabelEntity->text->text = godsCountLabelText;
+
+    
+    sprintf(player1CharBuff, "%i", (int)player1Entity->playerData->score);
+    sprintf(player2CharBuff, "%i", (int)player2Entity->playerData->score);
+    sprintf(player3CharBuff, "%i", (int)player3Entity->playerData->score);
+    sprintf(player4CharBuff, "%i", (int)player4Entity->playerData->score);
+    player1CountEntity->text->text = player1CharBuff;
+    player2CountEntity->text->text = player2CharBuff;
+    player3CountEntity->text->text = player3CharBuff;
+    player4CountEntity->text->text = player4CharBuff;
+    //debugf("updateplayerScore: %s %i \n", player1CharBuff, player1Entity->playerData->score);
 }
 
 
@@ -723,3 +807,8 @@ void Game_Shutdown(void){
 	debugf("Game_Shutdown");
 
 }
+
+
+
+
+

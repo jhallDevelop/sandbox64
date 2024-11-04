@@ -194,6 +194,8 @@ void AF_UI_RendererText_Update(AF_CText* _text){
 
 }
 
+
+
 /*
 ====================
 AF_UI_RENDERER_FINISH
