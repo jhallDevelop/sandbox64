@@ -185,6 +185,9 @@ void render_sphere(AF_CTransform3D* _transform)//float rotation)
     // Because the cube has colors set per vertex, we can color each face seperately
     glEnable(GL_COLOR_MATERIAL);
     glTranslatef(_transform->pos.x, _transform->pos.y, _transform->pos.z);
+    // Apply scaling
+    glScalef(_transform->scale.x, _transform->scale.y, _transform->scale.z);
+
     draw_sphere();
     //glCullFace(GL_BACK);
     glDisable(GL_COLOR_MATERIAL);

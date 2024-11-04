@@ -101,14 +101,14 @@ void render_cube(const AF_CTransform3D* _transform)
     // Apply vertex color as material color.
     // Because the cube has colors set per vertex, we can color each face seperately
     
-    glEnable(GL_COLOR_MATERIAL);
+    //glEnable(GL_COLOR_MATERIAL);
 
     // Apply to ambient and diffuse material properties
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 
     draw_cube();
     
-    glDisable(GL_COLOR_MATERIAL);
+    //glDisable(GL_COLOR_MATERIAL);
 
     glPopMatrix();
 }

@@ -96,7 +96,7 @@ void App_Update(AF_Input* _input, AF_ECS* _ecs, AF_Time* _time){
     //AF_Physics_EarlyUpdate(&ecs);
 
     // TODO: pass input and ECS structs to the game to apply game logic
-    Game_Update(_input, _ecs);
+    Game_Update(_input, _ecs, _time);
 
     // Physics
     AF_Physics_Update(_ecs, _time->timeSinceLastFrame);

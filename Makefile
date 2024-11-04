@@ -14,6 +14,7 @@ assets_conv = $(addprefix filesystem/,$(notdir $(assets:%.wav=%.wav64))) $(addpr
 
 MKSPRITE_FLAGS ?=
 MKFONT_FLAGS ?=
+WARNING_FLAGS = -Wno-unused-variables -Wno-unsued-function
 
 # UNFLoader files
 UNFLLOADER_DIR = libs/UNFLoader/
