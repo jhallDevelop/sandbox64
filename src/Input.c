@@ -6,6 +6,10 @@ Input contains everything needed to collect input from the system and feed it ba
 #include <libdragon.h>
 #include "AF_Input.h"
 
+#define A_KEY 0
+#define B_KEY 1
+#define START_KEY 2
+
 void AF_Input_Init(){
 	debugf("Input Init\n");
 	joypad_init();
@@ -45,14 +49,14 @@ void AF_Input_Update(AF_Input* _input){
 	// Held
         if (held.a) {
 		//debugf("Input A Button Held\n");
-		_input->keys[0].pressed = TRUE;
+		_input->keys[A_KEY].pressed = TRUE;
             //animation++;
         }
 
         if (held.b) {
         
 		//debugf("Input B Button Held\n");
-		_input->keys[1].pressed = TRUE;
+		_input->keys[B_KEY].pressed = TRUE;
 	}
 	
 	if (held.r) {
@@ -77,7 +81,8 @@ void AF_Input_Update(AF_Input* _input){
 
 
         if (pressed.start) {
-		//debugf("Input Start Button pressed\n");
+			debugf("Input Start Button pressed\n");
+			_input->keys[START_KEY].pressed = TRUE;
         }
 
 

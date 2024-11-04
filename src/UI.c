@@ -173,6 +173,10 @@ void AF_UI_RendererText_Update(AF_CText* _text){
         return;
     }
 
+    if(_text->isShowing == FALSE){
+        return;
+    }
+
     // don't proceed if no path or null
     if(_text->fontPath == NULL || AF_STRING_IS_EMPTY(_text->text) == TRUE){
         return;

@@ -17,7 +17,8 @@
 #include <GL/gl_integration.h>
 #include "PlayerController.h"
 // Sounds
-
+#define COUNT_DOWN_TIME 120
+#define GODS_EAT_COUNT 10
 
 // ECS system
 AF_Entity* camera;
@@ -69,6 +70,21 @@ AF_Entity* villager2;
 AF_Entity* villager3;
 AF_Entity* villager4;
 
+// Main Menu
+AF_Entity* mainMenuTitleEntity;
+AF_Entity* mainMenuSubTitleEntity;
+char mainMenuTitleCharBuffer[20] = "OLD GODS";
+char mainMenuSubTitleCharBuffer[40] = "Press Start to begin";
+
+// GameOverScreen
+AF_Entity* gameOverTitleEntity;
+AF_Entity* gameOverSubTitleEntity;
+char gameOverTitleCharBuffer[20] = "Game Over";
+char gameOverSubTitleLoseCharBuffer[80] = "You have failed to contain the the god\nPress Start to restart";
+char gameOverSubTitleWinCharBuffer[80] = "You have succeded to contain the the god\nPress Start to restart";
+
+// LoseScreen
+
 
 
 // define some const values
@@ -95,7 +111,7 @@ wav64_t sfx_cannon, sfx_laser, sfx_music;
 //const char* soundFX1Path = "rom:/cannon.wav64";
 
 // Text
-const char *titleText = "oldGods64 - 0.00005\n";
+const char *titleText = "oldGods64 - 0.00006\n";
 char godsCountLabelText[20] = "666";
 char countdownTimerLabelText[20] = "6666";
 
@@ -114,8 +130,10 @@ int godEatCount = 0;
 float countdownTimer = 120;
 
 enum GAME_STATE{
-    GAME_STATE_GAME_OVER = 0,
-    GAME_STATE_PLAYING = 1
+    GAME_STATE_MAIN_MENU = 0,
+    GAME_STATE_PLAYING = 1,
+    GAME_STATE_GAME_OVER_LOSE = 2,
+    GAME_STATE_GAME_OVER_WIN = 3,
 };
 
 enum GAME_STATE gameState = GAME_STATE_PLAYING;
@@ -132,11 +150,13 @@ AF_Entity* CreateAudioEntity(AF_ECS* _ecs, AF_AudioClip _audioClip, uint8_t _cha
 AF_Entity* CreateSprite(AF_ECS* _ecs, const char* _spritePath, Vec2 _screenPos, Vec2 _size, uint8_t _color[4], char _animationFrames, Vec2 _spriteSheetSize, void* _spriteData);
 AF_Entity* CreatePrimative(AF_ECS* _ecs, Vec3 _pos, Vec3 _bounds, enum AF_MESH_TYPE _meshType, enum CollisionVolumeType _collisionType, void* _collisionCallback);
 AF_Entity* Game_UI_CreatePlayerCountLabel(AF_ECS* _ecs, char* _textBuff, int _fontID, const char* _fontPath, float _color[4], Vec2 _pos, Vec2 _size);
-void UpdatePlayerScoreText(AF_Entity* _entity, char _buff[20], int* _value);
+void UpdatePlayerScoreText();
 void Game_OnTrigger(AF_Collision* _collision);
 void Game_OnGodTrigger(AF_Collision* _collision);
 void Game_OnBucketTrigger(AF_Collision* _collision);
+void RenderGameOverScreen(AF_Input* _input);
 void UpdateText(AF_ECS* _ecs);
+void RenderMainMenu(AF_Input* _input, AF_Time* _time);
 
 
 AF_Entity* CreateSprite(AF_ECS* _ecs, const char* _spritePath, Vec2 _screenPos, Vec2 _size, uint8_t _color[4], char _animationFrames, Vec2 _spriteSheetSize, void* _spriteData){
@@ -267,6 +287,8 @@ void Game_Start(AF_ECS* _ecs){
 		return;
 	}
 
+    gameState = GAME_STATE_MAIN_MENU;
+
 }
 void Game_Update(AF_Input* _input, AF_ECS* _ecs, AF_Time* _time)
 {
@@ -301,11 +323,9 @@ void Game_Update(AF_Input* _input, AF_ECS* _ecs, AF_Time* _time)
 		audio_write_end();
 	}*/
     //debugf("timer tick %li countdown %f\n", _time->currentTick, _time->timeSinceLastFrame*.01);
-    countdownTimer -= _time->timeSinceLastFrame;
-    if(countdownTimer <= 0){
-        gameState = GAME_STATE_GAME_OVER;
-        countdownTimer = 120;
-    }
+    
+
+
 
     // carry villages
     for(int i = 0; i < _ecs->entitiesCount; ++i){
@@ -324,6 +344,9 @@ void Game_Update(AF_Input* _input, AF_ECS* _ecs, AF_Time* _time)
      
     }
     UpdateText(_ecs);
+    // this will decide how to render depending on game state
+    RenderMainMenu(_input,_time);
+    RenderGameOverScreen(_input);
 }
 
 // used to run in-between render start and render end. 
@@ -662,16 +685,31 @@ void Game_SetupEntities(AF_ECS* _ecs){
     Vec2 player4CountLabelSize = {50, 50};
     player4CountEntity = Game_UI_CreatePlayerCountLabel(_ecs, player4CharBuff, font2, fontPath2, whiteColor, player4CountLabelPos, player4CountLabelSize);
 	// Create sprites
-    /*
-	Vec2 spritePos = {10, 20};
-	Vec2 spriteSize = {120, 80};
-	uint8_t spriteColor[4] = {255, 0, 0, 255};
-	Vec2 spriteSheetSize = {spriteSize.x *6,spriteSize.y * 1};
-	animatedSprite = CreateSprite(_ecs, sheet_knightPath, spritePos, spriteSize, spriteColor, 1, spriteSheetSize, (void*)sheet_knight);
-	animatedSprite->sprite->animationFrames = 6;
-	animatedSprite->sprite->animationSpeed = (1.0f) * 1000000; // Convert to microseconds if timer_ticks() is in microseconds ;		// about 33 milliseconds / 30fps
-	animatedSprite->sprite->loop = FALSE;
-    */
+
+    // game over
+    Vec2 gameOverTitlePos = {120, 100};
+    Vec2 gameOverTitleSize = {320, 50};
+    Vec2 gameOverSubTitlePos = {20, 140};
+    Vec2 gameOverSubTitleSize = {320, 50};
+    gameOverTitleEntity = Game_UI_CreatePlayerCountLabel(_ecs, gameOverTitleCharBuffer, font2, fontPath2, whiteColor, gameOverTitlePos, gameOverTitleSize);
+    gameOverSubTitleEntity = Game_UI_CreatePlayerCountLabel(_ecs, gameOverSubTitleLoseCharBuffer, font2, fontPath2, whiteColor, gameOverSubTitlePos, gameOverSubTitleSize);
+    // disable at the start
+	gameOverTitleEntity->text->isShowing = FALSE;
+    gameOverSubTitleEntity->text->isShowing = FALSE;
+
+    // Create Main Menu
+    Vec2 mainMenuTitlePos = {120, 100};
+    Vec2 mainMenuTitleSize = {320, 50};
+    Vec2 mainMenuSubTitlePos = {20, 140};
+    Vec2 mainMenuSubTitleSize = {320, 50};
+    mainMenuTitleEntity = Game_UI_CreatePlayerCountLabel(_ecs, mainMenuTitleCharBuffer, font2, fontPath2, whiteColor, gameOverTitlePos, mainMenuTitleSize);
+    mainMenuSubTitleEntity = Game_UI_CreatePlayerCountLabel(_ecs, mainMenuSubTitleCharBuffer, font2, fontPath2, whiteColor, gameOverSubTitlePos, mainMenuSubTitleSize);
+    // disable at the start
+	mainMenuTitleEntity->text->isShowing = FALSE;
+    mainMenuSubTitleEntity->text->isShowing = FALSE;
+
+
+
 }
 
 
@@ -780,17 +818,18 @@ void UpdateText(AF_ECS* _ecs){
     sprintf(countdownTimerLabelText, "TIME %i", (int)countdownTimer);
     countdownTimerLabelEntity->text->text = countdownTimerLabelText;
 
+    
     //player1CountEntity->text->text = player1CharBuff;
     // Update player counters
     // player 1
     
 }
 
-void UpdatePlayerScoreText(AF_Entity* _entity, char _buff[20], int* _value){
+void UpdatePlayerScoreText(){
     sprintf(godsCountLabelText, "%i", godEatCount);
     godEatCountLabelEntity->text->text = godsCountLabelText;
 
-    
+
     sprintf(player1CharBuff, "%i", (int)player1Entity->playerData->score);
     sprintf(player2CharBuff, "%i", (int)player2Entity->playerData->score);
     sprintf(player3CharBuff, "%i", (int)player3Entity->playerData->score);
@@ -802,6 +841,124 @@ void UpdatePlayerScoreText(AF_Entity* _entity, char _buff[20], int* _value){
     //debugf("updateplayerScore: %s %i \n", player1CharBuff, player1Entity->playerData->score);
 }
 
+void RenderMainMenu(AF_Input* _input, AF_Time* _time){
+    switch (gameState)
+    {
+    case GAME_STATE_MAIN_MENU:
+        // Main Menu
+        mainMenuTitleEntity->text->isShowing = TRUE;
+        mainMenuSubTitleEntity->text->isShowing = TRUE;
+
+        // Game Over
+        gameOverTitleEntity->text->isShowing = FALSE;
+        gameOverSubTitleEntity->text->isShowing = FALSE;
+        gameOverTitleEntity->text->isShowing = FALSE;
+        gameOverSubTitleEntity->text->isShowing = FALSE;
+
+        // Player Counts
+        player1CountEntity->text->isShowing = FALSE;
+        player2CountEntity->text->isShowing = FALSE;
+        player3CountEntity->text->isShowing = FALSE;
+        player4CountEntity->text->isShowing = FALSE;
+
+        // playercounts reset
+        player1CountEntity->playerData->score = 0;
+        player2CountEntity->playerData->score = 0;
+        player3CountEntity->playerData->score = 0;
+        player4CountEntity->playerData->score = 0;
+
+        // reset the visible text
+        UpdatePlayerScoreText();
+        // Header bar
+        godEatCountLabelEntity->text->isShowing = FALSE;
+        // gods count reset
+        godEatCount = 0;
+
+        countdownTimerLabelEntity->text->isShowing = FALSE;
+
+        // countdown Time
+        countdownTimer = COUNT_DOWN_TIME;
+
+        // detect start button pressed
+        if(_input->keys[2].pressed == TRUE){
+            gameState = GAME_STATE_PLAYING;
+        }
+        
+        
+    break;
+
+    case GAME_STATE_PLAYING:
+        // Update countdown timer
+        countdownTimer -= _time->timeSinceLastFrame;
+        if(countdownTimer <= 0){
+            gameState = GAME_STATE_GAME_OVER_LOSE;
+            countdownTimer = COUNT_DOWN_TIME;
+        }
+
+        if(godEatCount == GODS_EAT_COUNT){
+            gameState = GAME_STATE_GAME_OVER_WIN;
+            countdownTimer = COUNT_DOWN_TIME;
+        }
+
+    // Player Counts
+        player1CountEntity->text->isShowing = TRUE;
+        player2CountEntity->text->isShowing = TRUE;
+        player3CountEntity->text->isShowing = TRUE;
+        player4CountEntity->text->isShowing = TRUE;
+
+        // MAin MEnu
+        mainMenuTitleEntity->text->isShowing = FALSE;
+        mainMenuSubTitleEntity->text->isShowing = FALSE;
+
+        // Header bar
+        godEatCountLabelEntity->text->isShowing = TRUE;
+        countdownTimerLabelEntity->text->isShowing= TRUE;
+    break;
+
+    default:
+        break;
+    }
+}
+void RenderGameOverScreen(AF_Input* _input){
+    switch (gameState)
+    {
+    case GAME_STATE_PLAYING:
+        
+    break;
+    case GAME_STATE_GAME_OVER_WIN:
+        /* code */
+        // render game over win title
+        // render game over sub title showing what player won
+        gameOverSubTitleEntity->text->text = gameOverSubTitleWinCharBuffer;
+        gameOverTitleEntity->text->isShowing = TRUE;
+        gameOverSubTitleEntity->text->isShowing = TRUE;
+
+        // detect start button pressed
+        if(_input->keys[2].pressed == TRUE){
+            gameState = GAME_STATE_MAIN_MENU;
+        }
+        break;
+
+    case GAME_STATE_GAME_OVER_LOSE:
+        /* code */
+        // render Game over lose title
+        // Render Game Over lose sub title
+        gameOverSubTitleEntity->text->text = gameOverSubTitleLoseCharBuffer;
+        gameOverTitleEntity->text->isShowing = TRUE;
+        gameOverSubTitleEntity->text->isShowing = TRUE;
+
+        // detect start button pressed
+        if(_input->keys[2].pressed == TRUE){
+            gameState = GAME_STATE_MAIN_MENU;
+        }
+        break;
+    
+    default:
+        break;
+    }
+
+    // if player presses start button. Restart the game
+}
 
 void Game_Shutdown(void){
 	debugf("Game_Shutdown");
