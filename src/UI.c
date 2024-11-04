@@ -181,20 +181,31 @@ void AF_UI_RendererText_Update(AF_CText* _text){
     if(_text->fontPath == NULL || AF_STRING_IS_EMPTY(_text->text) == TRUE){
         return;
     }
+    // if text needs updating, rebuild, otherwise skip
+    if(_text->isDirty == TRUE){
+        int nbytes = strlen(_text->text);
+        rdpq_paragraph_free((rdpq_paragraph_t*)_text->textData);
+        rdpq_paragraph_t* par = rdpq_paragraph_build(&(rdpq_textparms_t){
+            // .line_spacing = -3,
+            .align = ALIGN_LEFT,
+            .valign = VALIGN_CENTER,
+            .width = _text->textBounds.x,
+            .height = _text->textBounds.y,
+            .wrap = WRAP_WORD,
+        }, _text->fontID, _text->text, &nbytes);
+        _text->textData = (void*) par;
+        _text->isDirty = FALSE;
+    }
 
     
-    int nbytes = strlen(_text->text);
-    rdpq_paragraph_t* par = rdpq_paragraph_build(&(rdpq_textparms_t){
-        // .line_spacing = -3,
-        .align = ALIGN_LEFT,
-        .valign = VALIGN_CENTER,
-        .width = _text->textBounds.x,
-        .height = _text->textBounds.y,
-        .wrap = WRAP_WORD,
-    }, _text->fontID, _text->text, &nbytes);
+    if(_text->textData == NULL){
+        return;
+    }
+    rdpq_paragraph_render((rdpq_paragraph_t*)_text->textData, _text->screenPos.x, _text->screenPos.y);
     
-    rdpq_paragraph_render(par, _text->screenPos.x, _text->screenPos.y);
-    rdpq_paragraph_free(par);
+
+    //rdpq_paragraph_render(par, _text->screenPos.x, _text->screenPos.y);
+    //rdpq_paragraph_free(par);
 
 }
 

@@ -901,10 +901,10 @@ void RenderMainMenu(AF_Input* _input, AF_Time* _time){
         }
 
     // Player Counts
-        player1CountEntity->text->isShowing = TRUE;
-        player2CountEntity->text->isShowing = TRUE;
-        player3CountEntity->text->isShowing = TRUE;
-        player4CountEntity->text->isShowing = TRUE;
+        //player1CountEntity->text->isShowing = TRUE;
+        //player2CountEntity->text->isShowing = TRUE;
+        //player3CountEntity->text->isShowing = TRUE;
+        //player4CountEntity->text->isShowing = TRUE;
 
         // MAin MEnu
         mainMenuTitleEntity->text->isShowing = FALSE;

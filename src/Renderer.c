@@ -346,7 +346,7 @@ void AF_Renderer_Finish(){
     rdpq_detach_show();
 
     
-
+    
     // For debugging
     if (DEBUG_RDP){
         rspq_profile_next_frame();
@@ -358,6 +358,7 @@ void AF_Renderer_Finish(){
         }
         rspq_wait();
     }
+    
     
 }
 
