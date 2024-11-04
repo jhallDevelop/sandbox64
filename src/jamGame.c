@@ -48,6 +48,13 @@ AF_Entity* bucket2;
 AF_Entity* bucket3;
 AF_Entity* bucket4;
 
+// villigers
+AF_Entity* villager1;
+AF_Entity* villager2;
+AF_Entity* villager3;
+AF_Entity* villager4;
+
+
 
 // define some const values
 
@@ -73,7 +80,7 @@ wav64_t sfx_cannon, sfx_laser, sfx_music;
 //const char* soundFX1Path = "rom:/cannon.wav64";
 
 // Text
-const char *titleText = "oldGods64 - 0.00003\n";
+const char *titleText = "oldGods64 - 0.00004\n";
 char godsCountLabelText[20] = "666";
 char countdownTimerLabelText[20] = "6666";
 
@@ -247,6 +254,7 @@ void Game_Update(AF_Input* _input, AF_ECS* _ecs, AF_Time* _time)
 		// clear velocities
 		AF_C3DRigidbody* rigidbody =  &_ecs->rigidbodies[i];
 		Vec3 zeroVelocity = {0,0,0};
+        
 		//rigidbody->velocity = zeroVelocity;
 	}
 	HandleInput(_input, _ecs);
@@ -266,6 +274,23 @@ void Game_Update(AF_Input* _input, AF_ECS* _ecs, AF_Time* _time)
     if(countdownTimer <= 0){
         gameState = GAME_STATE_GAME_OVER;
         countdownTimer = 120;
+    }
+
+    // carry villages
+    for(int i = 0; i < _ecs->entitiesCount; ++i){
+        AF_Entity* entity = &_ecs->entities[i];
+        AF_CPlayerData* playerData = entity->playerData;
+
+        //if((AF_Component_GetHas(playerData->enabled) == TRUE) && (AF_Component_GetEnabled(playerData->enabled) == TRUE)){
+        if(playerData->isCarrying == TRUE){
+            // make villager match player transform
+            Vec3 villagerCarryPos = {entity->transform->pos.x, entity->transform->pos.y+3, entity->transform->pos.z};
+            villager1->transform->pos = villagerCarryPos;
+            
+            //debugf("entity carrying villager: x: %f y: %f x: %f \n", villagerCarryPos.x, villagerCarryPos.y, villagerCarryPos.z);
+        }
+        //}
+     
     }
     UpdateText(_ecs);
 }
@@ -329,6 +354,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
     player1Entity->mesh->material.textureID = 0;
 	player1Entity->rigidbody->inverseMass = 1;
 	player1Entity->rigidbody->isKinematic = TRUE;
+    *player1Entity->playerData = AF_CPlayerData_ADD();
 
     // Create Player2
 	player2Entity = CreateCube(_ecs);
@@ -341,6 +367,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
     player2Entity->mesh->material.textureID = 0;
 	player2Entity->rigidbody->inverseMass = 1;
 	player2Entity->rigidbody->isKinematic = TRUE;
+    *player2Entity->playerData = AF_CPlayerData_ADD();
 
     // Create Player3
 	player3Entity = CreateCube(_ecs);
@@ -353,6 +380,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
     player3Entity->mesh->material.textureID = 0;
 	player3Entity->rigidbody->inverseMass = 1;
 	player3Entity->rigidbody->isKinematic = TRUE;
+    *player3Entity->playerData = AF_CPlayerData_ADD();
 
     // Create Player4
 	player4Entity = CreateCube(_ecs);
@@ -365,6 +393,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
     player4Entity->mesh->material.textureID = 0;
 	player4Entity->rigidbody->inverseMass = 1;
 	player4Entity->rigidbody->isKinematic = TRUE;
+    *player4Entity->playerData = AF_CPlayerData_ADD();
 	
 
 	//====ENVIRONMENT========
@@ -427,7 +456,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
 
     // Bucket 1
     bucket1 = CreateCube(_ecs);
-	Vec3 bucket1Pos = {-10, 2.5, -10};
+	Vec3 bucket1Pos = {-10, 2, -10};
 	Vec3 bucket1Scale = {1,1,1};
 	bucket1->transform->pos = bucket1Pos;
 	bucket1->transform->scale = bucket1Scale;
@@ -440,7 +469,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
 
     // Bucket 2
     bucket2 = CreateCube(_ecs);
-	Vec3 bucket2Pos = {10, 2.5, -10};
+	Vec3 bucket2Pos = {10, 2, -10};
 	Vec3 bucket2Scale = {1,1,1};
 	bucket2->transform->pos = bucket2Pos;
 	bucket2->transform->scale = bucket2Scale;
@@ -454,7 +483,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
 
     // Bucket 3
     bucket3 = CreateCube(_ecs);
-	Vec3 bucket3Pos = {-10, 2.5, 10};
+	Vec3 bucket3Pos = {-10, 2, 10};
 	Vec3 bucket3Scale = {1,1,1};
 	bucket3->transform->pos = bucket3Pos;
 	bucket3->transform->scale = bucket3Scale;
@@ -467,7 +496,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
 
     // Bucket 4
     bucket4 = CreateCube(_ecs);
-	Vec3 bucket4Pos = {10, 2.5, 10};
+	Vec3 bucket4Pos = {10, 2, 10};
 	Vec3 bucket4Scale = {1,1,1};
 	bucket4->transform->pos = bucket4Pos;
 	bucket4->transform->scale = bucket4Scale;
@@ -477,6 +506,23 @@ void Game_SetupEntities(AF_ECS* _ecs){
 	bucket4->rigidbody->inverseMass = 0;
 	bucket4->rigidbody->isKinematic = TRUE;
     bucket4->collider->collision.callback = Game_OnBucketTrigger;
+
+
+
+    /// Villages
+    
+    villager1 = CreateCube(_ecs);
+	Vec3 villager1Pos = {-1000, 0, 0};
+	Vec3 villager1Scale = {1,1,1};
+	villager1->transform->pos = villager1Pos;
+	villager1->transform->scale = villager1Scale;
+	villager1->collider->boundingVolume = Vec3_MULT_SCALAR(villager1Scale, 2);
+	villager1->collider->showDebug = TRUE;
+    villager1->mesh->material.textureID = 0;
+	villager1->rigidbody->inverseMass = 0;
+	villager1->rigidbody->isKinematic = TRUE;
+    villager1->collider->collision.callback = Game_OnCollision;
+
 
 
 	// Setup Audio
@@ -648,6 +694,17 @@ void Game_OnBucketTrigger(AF_Collision* _collision){
 	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
 	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
 	debugf("Game_OnBucketTrigger:  \n");
+    // attatch next villager
+    AF_CPlayerData* playerData1 = entity1->playerData;
+    AF_CPlayerData* playerData2 = entity2->playerData;
+    //if((AF_Component_GetHas(playerData1->enabled) == TRUE) && (AF_Component_GetEnabled(playerData1->enabled) == TRUE)){
+        // attatch the villager to this player
+        debugf("OnBucketTrigger: carry villager \n");
+        playerData2->carryingEntity = villager1->id_tag;
+        playerData2->isCarrying = TRUE;
+    //}
+        
+
 
 }
 

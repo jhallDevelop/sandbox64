@@ -3,7 +3,7 @@
 #include "AF_Vec2.h"
 
 #define STICK_DEAD_ZONE 0.01
-#define PLAYER_SPEED 50
+#define PLAYER_SPEED 25
 
  void UpdatePlayerMovement(Vec2 _stick, AF_Entity* _entity){
    
