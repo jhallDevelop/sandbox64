@@ -6,15 +6,26 @@ Input contains everything needed to collect input from the system and feed it ba
 #include <libdragon.h>
 #include "AF_Input.h"
 
-#define A_KEY 0
-#define B_KEY 1
-#define START_KEY 2
+// Key mappings for n64 controller to joypad_button struct, polled from libdragon
+#define A_KEY 0			// A Button		
+#define B_KEY 1			// B Button
+#define START_KEY 2		// Start Button
 
+/*
+AF_Input_Init
+Init the input
+*/
 void AF_Input_Init(){
 	debugf("Input Init\n");
+	// Init Libdragon input
 	joypad_init();
 }
 
+/*
+AF_Input_Update
+Implementation of AF_Input_Update
+Using Libdragon joypad inputs, figure out what the input means for this game, storing the results in the input struct
+*/
 void AF_Input_Update(AF_Input* _input){
 	if(_input == NULL){
 		debugf("Input: Input_Update: passed in a null reference to input\n");
@@ -27,20 +38,21 @@ void AF_Input_Update(AF_Input* _input){
         joypad_inputs_t inputs = joypad_get_inputs(JOYPAD_PORT_1);
 
 		// Player 2
-		joypad_buttons_t pressed2 = joypad_get_buttons_pressed(JOYPAD_PORT_2);
-        joypad_buttons_t held2 = joypad_get_buttons_held(JOYPAD_PORT_2);
+		
+		//joypad_buttons_t pressed2 = joypad_get_buttons_pressed(JOYPAD_PORT_2);
+        //joypad_buttons_t held2 = joypad_get_buttons_held(JOYPAD_PORT_2);
         joypad_inputs_t inputs2 = joypad_get_inputs(JOYPAD_PORT_2);
 
 		// Player 3
-		joypad_buttons_t pressed3 = joypad_get_buttons_pressed(JOYPAD_PORT_3);
-        joypad_buttons_t held3 = joypad_get_buttons_held(JOYPAD_PORT_3);
+		//joypad_buttons_t pressed3 = joypad_get_buttons_pressed(JOYPAD_PORT_3);
+        //joypad_buttons_t held3 = joypad_get_buttons_held(JOYPAD_PORT_3);
         joypad_inputs_t inputs3 = joypad_get_inputs(JOYPAD_PORT_3);
 
 		// Player 4
-		joypad_buttons_t pressed4 = joypad_get_buttons_pressed(JOYPAD_PORT_4);
-        joypad_buttons_t held4 = joypad_get_buttons_held(JOYPAD_PORT_4);
+		//joypad_buttons_t pressed4 = joypad_get_buttons_pressed(JOYPAD_PORT_4);
+        //joypad_buttons_t held4 = joypad_get_buttons_held(JOYPAD_PORT_4);
         joypad_inputs_t inputs4 = joypad_get_inputs(JOYPAD_PORT_4);
-
+		
 
 		// flush the keys
 		for(int i = 0; i < AF_INPUT_KEYS_MAPPED; ++i){

@@ -56,22 +56,12 @@ AF_Entity* gameTitleEntity;
 // Timer
 AF_Entity* godEatCountLabelEntity;
 AF_Entity* countdownTimerLabelEntity;
-int player1Count = 111;
-int player2Count = 222;
-int player3Count = 333;
-int player4Count = 444;
 
 // Player Counters
-AF_Entity* player1CountEntity;
-AF_Entity* player2CountEntity;
-AF_Entity* player3CountEntity;
-AF_Entity* player4CountEntity;
+AF_Entity* playersCountUIEntity;
 
 // player counter char buffers
-char player1CharBuff[320] = "0                 0                  0                  0";
-char player2CharBuff[20] = "666";
-char player3CharBuff[20] = "666";
-char player4CharBuff[20] = "666";
+char playerCountCharBuff[320] = "0                 0                  0                  0";
 
 // Pickup
 AF_Entity* bucket1;
@@ -178,13 +168,14 @@ AF_Entity* CreateAudioEntity(AF_ECS* _ecs, AF_AudioClip _audioClip, uint8_t _cha
 AF_Entity* CreateSprite(AF_ECS* _ecs, const char* _spritePath, Vec2 _screenPos, Vec2 _size, uint8_t _color[4], char _animationFrames, Vec2 _spriteSheetSize, void* _spriteData);
 AF_Entity* CreatePrimative(AF_ECS* _ecs, Vec3 _pos, Vec3 _bounds, enum AF_MESH_TYPE _meshType, enum CollisionVolumeType _collisionType, void* _collisionCallback);
 AF_Entity* Game_UI_CreatePlayerCountLabel(AF_ECS* _ecs, char* _textBuff, int _fontID, const char* _fontPath, float _color[4], Vec2 _pos, Vec2 _size);
-void UpdatePlayerScoreText();
+void Game_UpdatePlayerScoreText();
 void Game_OnTrigger(AF_Collision* _collision);
 void Game_OnGodTrigger(AF_Collision* _collision);
 void Game_OnBucket1Trigger(AF_Collision* _collision);
 void Game_OnBucket2Trigger(AF_Collision* _collision);
 void Game_OnBucket3Trigger(AF_Collision* _collision);
 void Game_OnBucket4Trigger(AF_Collision* _collision);
+void Game_BucketCollisionBehaviour(int _currentBucket, int _bucketID, AF_Collision* _collision, AF_Entity* _villager, AF_Entity* _godEntity);
 void RenderGameOverScreen(AF_Input* _input);
 void UpdateText(AF_ECS* _ecs);
 void RenderMainMenu(AF_Input* _input, AF_Time* _time);
@@ -339,13 +330,6 @@ void Game_Update(AF_Input* _input, AF_ECS* _ecs, AF_Time* _time)
 	// if stick pressed left, right, up, down then adjust velocity
 	// add velocity to cube component
 
-	for(int i = 0; i < _ecs->entitiesCount; ++i){
-		// clear velocities
-		AF_C3DRigidbody* rigidbody =  &_ecs->rigidbodies[i];
-		Vec3 zeroVelocity = {0,0,0};
-        
-		//rigidbody->velocity = zeroVelocity;
-	}
 
     if(gameState == GAME_STATE_PLAYING){
         HandleInput(_input, _ecs);
@@ -645,7 +629,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
 	frontWall = CreateCube(_ecs);
 	Vec3 frontWallPos = {0, 0, 20};
 	Vec3 frontWallScale = {40,wallHeight,1};
-    frontWall->transform->pos = backWallPos;
+    frontWall->transform->pos = frontWallPos;
 	frontWall->transform->scale = frontWallScale;
 	frontWall->collider->boundingVolume = Vec3_MULT_SCALAR(frontWallScale, 2);
 	frontWall->collider->showDebug = FALSE;
@@ -740,12 +724,11 @@ void Game_SetupEntities(AF_ECS* _ecs){
 	
 
 	bool music = false;
-	int music_frequency = sfx_music.wave.frequency;
-
+	//int music_frequency = sfx_music.wave.frequency;
 	music = !music;
 	if (music) {
 		wav64_play(&sfx_music, CHANNEL_MUSIC);
-		music_frequency = sfx_music.wave.frequency;
+		//music_frequency = sfx_music.wave.frequency;
 	}
 
 	
@@ -828,22 +811,8 @@ void Game_SetupEntities(AF_ECS* _ecs){
  // Create Player 1 card
     Vec2 playe1CountLabelPos = {20, 180};
     Vec2 playe1CountLabelSize = {320, 50};
-    player1CountEntity = Game_UI_CreatePlayerCountLabel(_ecs, player1CharBuff, font2, fontPath2, whiteColor, playe1CountLabelPos, playe1CountLabelSize);
+    playersCountUIEntity = Game_UI_CreatePlayerCountLabel(_ecs, playerCountCharBuff, font2, fontPath2, whiteColor, playe1CountLabelPos, playe1CountLabelSize);
 
-
-   
-    Vec2 player2CountLabelPos = {100, 180};
-    Vec2 player2CountLabelSize = {50, 50};
-    player2CountEntity = Game_UI_CreatePlayerCountLabel(_ecs, player2CharBuff, font2, fontPath2, whiteColor, player2CountLabelPos, player2CountLabelSize);
-
-    Vec2 player3CountLabelPos = {180, 180};
-    Vec2 player3CountLabelSize = {50, 50};
-    player3CountEntity = Game_UI_CreatePlayerCountLabel(_ecs, player3CharBuff, font2, fontPath2, whiteColor, player3CountLabelPos, player3CountLabelSize);
-
-    Vec2 player4CountLabelPos = {260, 180};
-    Vec2 player4CountLabelSize = {50, 50};
-    player4CountEntity = Game_UI_CreatePlayerCountLabel(_ecs, player4CharBuff, font2, fontPath2, whiteColor, player4CountLabelPos, player4CountLabelSize);
-	// Create sprites
 
     // game over
     Vec2 gameOverTitlePos = {120, 100};
@@ -861,7 +830,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
     Vec2 mainMenuTitleSize = {320, 50};
     Vec2 mainMenuSubTitlePos = {80, 140};
     Vec2 mainMenuSubTitleSize = {320, 50};
-    mainMenuTitleEntity = Game_UI_CreatePlayerCountLabel(_ecs, mainMenuTitleCharBuffer, font2, fontPath2, whiteColor, gameOverTitlePos, mainMenuTitleSize);
+    mainMenuTitleEntity = Game_UI_CreatePlayerCountLabel(_ecs, mainMenuTitleCharBuffer, font2, fontPath2, whiteColor, mainMenuTitlePos, mainMenuTitleSize);
 
     mainMenuSubTitleEntity = Game_UI_CreatePlayerCountLabel(_ecs, mainMenuSubTitleCharBuffer, font2, fontPath2, whiteColor, mainMenuSubTitlePos, mainMenuSubTitleSize);
     // disable at the start
@@ -941,26 +910,25 @@ void Game_OnCollision(AF_Collision* _collision){
 	// do collision things
 }
 
+/*
+Game_OnTrigger
+Default collision callback to be used by game entities
+*/
 void Game_OnTrigger(AF_Collision* _collision){
-	AF_Entity* entity1 =  _collision->entity1;
-	AF_Entity* entity2 =  _collision->entity2;
-	uint32_t entity1ID = AF_ECS_GetID(entity1->id_tag);
-	uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
-	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
-	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
-	debugf("Game_OnTrigger: Entity %lu hit Entity %lu \n", entity1ID, entity2ID);
-	
-	// Play sound
+    
 }
 
-
+/*
+Game_OnGodTrigger
+Callback Behaviour triggered when the player dropps off a sacrafice to the gods
+*/
 void Game_OnGodTrigger(AF_Collision* _collision){
-	AF_Entity* entity1 =  _collision->entity1;
+	//AF_Entity* entity1 =  _collision->entity1;
 	AF_Entity* entity2 =  _collision->entity2;
-	uint32_t entity1ID = AF_ECS_GetID(entity1->id_tag);
-	uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
-	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
-	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
+	//uint32_t entity1ID = AF_ECS_GetID(entity1->id_tag);
+	//uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
+	//PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
+	//PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
 	
 
     // if entity is carrying, eat and shift the villager into the distance
@@ -969,7 +937,8 @@ void Game_OnGodTrigger(AF_Collision* _collision){
         godEatCount++;
         
         entity2->playerData->score ++;
-        UpdatePlayerScoreText(entity2, player1CharBuff, &entity2->playerData->score);
+        
+        Game_UpdatePlayerScoreText(entity2, playerCountCharBuff, &entity2->playerData->score);
 
         entity2->playerData->isCarrying = FALSE;
         entity2->playerData->carryingEntity = 0;
@@ -993,127 +962,82 @@ void Game_OnGodTrigger(AF_Collision* _collision){
 	//wav64_play(&sfx_cannon, CHANNEL_SFX1);
 }
 
+/*
+Game_OnBucket1Trigger
+Trigger callback assigned to buckets in the game world
+*/
 void Game_OnBucket1Trigger(AF_Collision* _collision){
     if(currentBucket != 0){
         return;
     }
-	AF_Entity* entity1 =  _collision->entity1;
-	AF_Entity* entity2 =  _collision->entity2;
-	uint32_t entity1ID = AF_ECS_GetID(entity1->id_tag);
-	uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
-	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
-	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
-	//debugf("Game_OnBucketTrigger:  \n");
-    // attatch next villager
-    AF_CPlayerData* playerData1 = entity1->playerData;
-    AF_CPlayerData* playerData2 = entity2->playerData;
-    //if((AF_Component_GetHas(playerData1->enabled) == TRUE) && (AF_Component_GetEnabled(playerData1->enabled) == TRUE)){
-        // attatch the villager to this player
-        if(villager1->playerData->isCarried == FALSE){
-            //debugf("OnBucketTrigger: carry villager \n");
-            playerData2->carryingEntity = villager1->id_tag;
-            villager1->mesh->material.textureID = godEntity->mesh->material.textureID;//entity2->mesh->material.textureID;
-            playerData2->isCarrying = TRUE;
-            // play sound
-		    //AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
-        }
+	Game_BucketCollisionBehaviour(currentBucket, 0, _collision, villager1, godEntity);
 }
 
-
+/*
+Game_OnBucket2Trigger
+Trigger callback assigned to buckets in the game world
+*/
 void Game_OnBucket2Trigger(AF_Collision* _collision){
     if(currentBucket != 1){
         return;
     }
-	AF_Entity* entity1 =  _collision->entity1;
-	AF_Entity* entity2 =  _collision->entity2;
-	uint32_t entity1ID = AF_ECS_GetID(entity1->id_tag);
-	uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
-	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
-	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
-	//debugf("Game_OnBucketTrigger:  \n");
-    // attatch next villager
-    AF_CPlayerData* playerData1 = entity1->playerData;
-    AF_CPlayerData* playerData2 = entity2->playerData;
-    //if((AF_Component_GetHas(playerData1->enabled) == TRUE) && (AF_Component_GetEnabled(playerData1->enabled) == TRUE)){
-        // attatch the villager to this player
-        if(villager1->playerData->isCarried == FALSE){
-            //debugf("OnBucketTrigger: carry villager \n");
-            playerData2->carryingEntity = villager1->id_tag;
-            villager1->mesh->material.textureID = godEntity->mesh->material.textureID;
-            playerData2->isCarrying = TRUE;
-            // play sound
-		    //AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
-        }
+	Game_BucketCollisionBehaviour(currentBucket, 1, _collision, villager1, godEntity);
 }
 
+/*
+Game_OnBucket3Trigger
+Trigger callback assigned to buckets in the game world
+*/
 void Game_OnBucket3Trigger(AF_Collision* _collision){
     if(currentBucket != 2){
         return;
     }
-	AF_Entity* entity1 =  _collision->entity1;
-	AF_Entity* entity2 =  _collision->entity2;
-	uint32_t entity1ID = AF_ECS_GetID(entity1->id_tag);
-	uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
-	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
-	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
-	//debugf("Game_OnBucketTrigger:  \n");
-    // attatch next villager
-    AF_CPlayerData* playerData1 = entity1->playerData;
-    AF_CPlayerData* playerData2 = entity2->playerData;
-    //if((AF_Component_GetHas(playerData1->enabled) == TRUE) && (AF_Component_GetEnabled(playerData1->enabled) == TRUE)){
-        // attatch the villager to this player
-        if(villager1->playerData->isCarried == FALSE){
-           // debugf("OnBucketTrigger: carry villager \n");
-            playerData2->carryingEntity = villager1->id_tag;
-            villager1->mesh->material.textureID = godEntity->mesh->material.textureID;
-            playerData2->isCarrying = TRUE;
-            // play sound
-		    //AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
-        }
+	Game_BucketCollisionBehaviour(currentBucket, 2, _collision, villager1, godEntity);
 }
 
+/*
+Game_OnBucket4Trigger
+Trigger callback assigned to buckets in the game world
+*/
 void Game_OnBucket4Trigger(AF_Collision* _collision){
     if(currentBucket != 3){
         return;
     }
-	AF_Entity* entity1 =  _collision->entity1;
+    Game_BucketCollisionBehaviour(currentBucket, 3, _collision, villager1, godEntity);
+}
+
+/*
+Game_BucketCollisionBehaviour
+Perform gameplay logic if bucket has been collided with by a player character
+*/
+void Game_BucketCollisionBehaviour(int _currentBucket, int _bucketID, AF_Collision* _collision, AF_Entity* _villager, AF_Entity* _godEntity){
+    // Don't react if this bucket isn't activated
+    if(_currentBucket != _bucketID){
+        return;
+    }
+	//AF_Entity* entity1 =  _collision->entity1;
 	AF_Entity* entity2 =  _collision->entity2;
-	uint32_t entity1ID = AF_ECS_GetID(entity1->id_tag);
-	uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
-	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
-	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
+	//uint32_t entity1ID = AF_ECS_GetID(entity1->id_tag);
+	//uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
+	//PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
+	//PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
 	//debugf("Game_OnBucketTrigger:  \n");
     // attatch next villager
-    AF_CPlayerData* playerData1 = entity1->playerData;
+    //AF_CPlayerData* playerData1 = entity1->playerData;
+
+    // Second collision is the playable character
     AF_CPlayerData* playerData2 = entity2->playerData;
     //if((AF_Component_GetHas(playerData1->enabled) == TRUE) && (AF_Component_GetEnabled(playerData1->enabled) == TRUE)){
         // attatch the villager to this player
-        if(villager1->playerData->isCarried == FALSE){
+        if(_villager->playerData->isCarried == FALSE){
             //debugf("OnBucketTrigger: carry villager \n");
-            playerData2->carryingEntity = villager1->id_tag;
-            villager1->mesh->material.textureID = godEntity->mesh->material.textureID;
+            playerData2->carryingEntity = _villager->id_tag;
+            _villager->mesh->material.textureID = _godEntity->mesh->material.textureID;
             playerData2->isCarrying = TRUE;
             // play sound
 		    //AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
         }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1128,32 +1052,27 @@ void UpdateText(AF_ECS* _ecs){
     countdownTimerLabelEntity->text->isDirty = TRUE;
 
     
-    //player1CountEntity->text->text = player1CharBuff;
+    //playersCountUIEntity->text->text = playerCountCharBuff;
     // Update player counters
     // player 1
     
 }
 
-void UpdatePlayerScoreText(){
+/*
+Game_UpdatePlayerScoreText
+Update the UI score elements
+*/
+void Game_UpdatePlayerScoreText(){
     sprintf(godsCountLabelText, "%i", godEatCount);
     godEatCountLabelEntity->text->text = godsCountLabelText;
+    // our UI text rendering needs to be told an element is dirty so it will rebuild the text paragraph (for performance)
     godEatCountLabelEntity->text->isDirty = TRUE;
-
-
-    sprintf(player1CharBuff, "%i                 %i                  %i                  %i", (int)player1Entity->playerData->score, (int)player2Entity->playerData->score, (int)player3Entity->playerData->score, (int)player4Entity->playerData->score);
-    debugf("playerScore %s \n", player1CharBuff);
-    //sprintf(player2CharBuff, "%i", (int)player2Entity->playerData->score);
-    //sprintf(player3CharBuff, "%i", (int)player3Entity->playerData->score);
-    //sprintf(player4CharBuff, "%i", (int)player4Entity->playerData->score);
-    player1CountEntity->text->text = player1CharBuff;
-    player1CountEntity->text->isDirty = TRUE;
-    //player2CountEntity->text->text = player2CharBuff;
-    //player2CountEntity->text->isDirty = TRUE;
-    //player3CountEntity->text->text = player3CharBuff;
-    //player3CountEntity->text->isDirty = TRUE;
-    //player4CountEntity->text->text = player4CharBuff;
-    //player4CountEntity->text->isDirty = TRUE;
-    //debugf("updateplayerScore: %s %i \n", player1CharBuff, player1Entity->playerData->score);
+    sprintf(playerCountCharBuff, "%i                 %i                  %i                  %i", (int)player1Entity->playerData->score, (int)player2Entity->playerData->score, (int)player3Entity->playerData->score, (int)player4Entity->playerData->score);
+    debugf("playerScore %s \n", playerCountCharBuff);
+    
+    playersCountUIEntity->text->text = playerCountCharBuff;
+    playersCountUIEntity->text->isDirty = TRUE;
+   
 }
 
 void RenderMainMenu(AF_Input* _input, AF_Time* _time){
@@ -1170,17 +1089,11 @@ void RenderMainMenu(AF_Input* _input, AF_Time* _time){
         gameOverTitleEntity->text->isShowing = FALSE;
         gameOverSubTitleEntity->text->isShowing = FALSE;
 
-        // Player Counts
-        player1CountEntity->text->isShowing = FALSE;
-        player2CountEntity->text->isShowing = FALSE;
-        player3CountEntity->text->isShowing = FALSE;
-        player4CountEntity->text->isShowing = FALSE;
-
-        // playercounts reset
-        
+        // Player Counts hid
+        playersCountUIEntity->text->isShowing = FALSE;
 
         // reset the visible text
-        //UpdatePlayerScoreText();
+        //Game_UpdatePlayerScoreText();
         // Header bar
         godEatCountLabelEntity->text->isShowing = FALSE;
         // gods count reset
@@ -1200,15 +1113,8 @@ void RenderMainMenu(AF_Input* _input, AF_Time* _time){
             player2Entity->playerData->score = 0;
             player3Entity->playerData->score = 0;
             player4Entity->playerData->score = 0;
-            player1CountEntity->playerData->score = 0;
-            player2CountEntity->playerData->score = 0;
-            player3CountEntity->playerData->score = 0;
-            player4CountEntity->playerData->score = 0;
-            player1Count = 0;
-            player2Count = 0;
-            player3Count = 0;
-            player4Count = 0;
-            UpdatePlayerScoreText();
+            playersCountUIEntity->playerData->score = 0;
+            Game_UpdatePlayerScoreText();
         }
         
         
@@ -1228,10 +1134,7 @@ void RenderMainMenu(AF_Input* _input, AF_Time* _time){
         }
 
     // Player Counts
-        player1CountEntity->text->isShowing = TRUE;
-        //player2CountEntity->text->isShowing = TRUE;
-        //player3CountEntity->text->isShowing = TRUE;
-        //player4CountEntity->text->isShowing = TRUE;
+        playersCountUIEntity->text->isShowing = TRUE;
 
         // MAin MEnu
         mainMenuTitleEntity->text->isShowing = FALSE;
