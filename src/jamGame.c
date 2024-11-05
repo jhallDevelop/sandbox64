@@ -17,9 +17,16 @@
 #include <GL/gl_integration.h>
 #include "PlayerController.h"
 #include "AF_Renderer.h"
+
+//We need to show lots of internal details of the module which are not
+// exposed via public API, so include the internal header file.
+//#include "./libdragon/src/audio/libxm/xm_internal.h"
+//#include "libdragon/src/audio/audio/libxm/xm_internal.h" //"libdragon/src/audio/libxm/xm_internal.h"
+//#include "xm_internal.h"
+
 // Sounds
 #define COUNT_DOWN_TIME 120
-#define GODS_EAT_COUNT 2
+#define GODS_EAT_COUNT 15
 
 // ECS system
 AF_Entity* camera;
@@ -126,7 +133,7 @@ const char* laserFXPath = "rom:/laser.wav64";
 const char* musicFXPath = "rom:/monosample8.wav64";
 
 // Text
-const char *titleText = "og64 0.09\n";
+const char *titleText = "og64 0.1\n";
 char godsCountLabelText[20] = "666";
 char countdownTimerLabelText[20] = "6666";
 
@@ -159,6 +166,9 @@ const char* player1SpriteSheetPath = "rom:/knight.sprite";
 
 int currentBucket = 0;
 
+static xm64player_t xm;
+static char *cur_rom = "rom:/Arcade_S900.xm64";
+
 // forward decalred functions
 void HandleInput(AF_Input* _input, AF_ECS* _ecs);
 void Game_DrawPhysics(AF_ECS* _ecs);
@@ -179,6 +189,7 @@ void RenderGameOverScreen(AF_Input* _input);
 void UpdateText(AF_ECS* _ecs);
 void RenderMainMenu(AF_Input* _input, AF_Time* _time);
 void SpawnBucket();
+void PlayMusic();
 
 AF_Entity* CreateSprite(AF_ECS* _ecs, const char* _spritePath, Vec2 _screenPos, Vec2 _size, uint8_t _color[4], char _animationFrames, Vec2 _spriteSheetSize, void* _spriteData){
 	AF_Entity* entity = AF_ECS_CreateEntity(_ecs);
@@ -312,6 +323,7 @@ void Game_Start(AF_ECS* _ecs){
 
     // choose the random spawn
     SpawnBucket();
+    //PlayMusic();
 
 }
 void Game_Update(AF_Input* _input, AF_ECS* _ecs, AF_Time* _time)
@@ -714,7 +726,7 @@ void Game_SetupEntities(AF_ECS* _ecs){
 	// Setup Audio
 	// TODO: put into audio function
 	audio_init(44100, 4);
-	mixer_init(16);  // Initialize up to 16 channels
+	mixer_init(32);  // Initialize up to 16 channels
 
 	AF_AudioClip musicAudioClip = {0, musicFXPath, 12800};
 	laserSoundEntity = CreateAudioEntity(_ecs, musicAudioClip, CHANNEL_MUSIC, (void*)&sfx_music, TRUE);
@@ -862,9 +874,13 @@ void Game_SetupEntities(AF_ECS* _ecs){
 
 
 void SpawnBucket(){
-    int upper = 3;
+    int upper = 4;
     int lower = 0;
     int randomNum = (rand() % (upper + - lower) + lower);
+    // don't let the random number go above 4, as we count from 0
+    if(randomNum >=4){
+        randomNum = 3;
+    }
     debugf("Random number %i \n", randomNum);
     if(randomNum == 0){
         currentBucket = 0;
@@ -962,7 +978,7 @@ void Game_OnGodTrigger(AF_Collision* _collision){
         // randomly call for a colour bucket
         SpawnBucket();
         // play sound
-		AF_Audio_Play(cannonSoundEntity->audioSource, 0.5f, FALSE);
+		//AF_Audio_Play(cannonSoundEntity->audioSource, 0.5f, FALSE);
 
         // clear the players from carrying
         player1Entity->playerData->isCarrying = FALSE;
@@ -987,19 +1003,19 @@ void Game_OnBucket1Trigger(AF_Collision* _collision){
 	uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
 	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
 	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
-	debugf("Game_OnBucketTrigger:  \n");
+	//debugf("Game_OnBucketTrigger:  \n");
     // attatch next villager
     AF_CPlayerData* playerData1 = entity1->playerData;
     AF_CPlayerData* playerData2 = entity2->playerData;
     //if((AF_Component_GetHas(playerData1->enabled) == TRUE) && (AF_Component_GetEnabled(playerData1->enabled) == TRUE)){
         // attatch the villager to this player
         if(villager1->playerData->isCarried == FALSE){
-            debugf("OnBucketTrigger: carry villager \n");
+            //debugf("OnBucketTrigger: carry villager \n");
             playerData2->carryingEntity = villager1->id_tag;
             villager1->mesh->material.textureID = godEntity->mesh->material.textureID;//entity2->mesh->material.textureID;
             playerData2->isCarrying = TRUE;
             // play sound
-		    AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
+		    //AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
         }
 }
 
@@ -1014,19 +1030,19 @@ void Game_OnBucket2Trigger(AF_Collision* _collision){
 	uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
 	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
 	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
-	debugf("Game_OnBucketTrigger:  \n");
+	//debugf("Game_OnBucketTrigger:  \n");
     // attatch next villager
     AF_CPlayerData* playerData1 = entity1->playerData;
     AF_CPlayerData* playerData2 = entity2->playerData;
     //if((AF_Component_GetHas(playerData1->enabled) == TRUE) && (AF_Component_GetEnabled(playerData1->enabled) == TRUE)){
         // attatch the villager to this player
         if(villager1->playerData->isCarried == FALSE){
-            debugf("OnBucketTrigger: carry villager \n");
+            //debugf("OnBucketTrigger: carry villager \n");
             playerData2->carryingEntity = villager1->id_tag;
             villager1->mesh->material.textureID = godEntity->mesh->material.textureID;
             playerData2->isCarrying = TRUE;
             // play sound
-		    AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
+		    //AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
         }
 }
 
@@ -1040,19 +1056,19 @@ void Game_OnBucket3Trigger(AF_Collision* _collision){
 	uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
 	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
 	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
-	debugf("Game_OnBucketTrigger:  \n");
+	//debugf("Game_OnBucketTrigger:  \n");
     // attatch next villager
     AF_CPlayerData* playerData1 = entity1->playerData;
     AF_CPlayerData* playerData2 = entity2->playerData;
     //if((AF_Component_GetHas(playerData1->enabled) == TRUE) && (AF_Component_GetEnabled(playerData1->enabled) == TRUE)){
         // attatch the villager to this player
         if(villager1->playerData->isCarried == FALSE){
-            debugf("OnBucketTrigger: carry villager \n");
+           // debugf("OnBucketTrigger: carry villager \n");
             playerData2->carryingEntity = villager1->id_tag;
             villager1->mesh->material.textureID = godEntity->mesh->material.textureID;
             playerData2->isCarrying = TRUE;
             // play sound
-		    AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
+		    //AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
         }
 }
 
@@ -1066,19 +1082,19 @@ void Game_OnBucket4Trigger(AF_Collision* _collision){
 	uint32_t entity2ID = AF_ECS_GetID(entity2->id_tag);
 	PACKED_UINT32 entity1Tag = AF_ECS_GetTag(entity1->id_tag);
 	PACKED_UINT32 entity2Tag = AF_ECS_GetTag(entity2->id_tag);
-	debugf("Game_OnBucketTrigger:  \n");
+	//debugf("Game_OnBucketTrigger:  \n");
     // attatch next villager
     AF_CPlayerData* playerData1 = entity1->playerData;
     AF_CPlayerData* playerData2 = entity2->playerData;
     //if((AF_Component_GetHas(playerData1->enabled) == TRUE) && (AF_Component_GetEnabled(playerData1->enabled) == TRUE)){
         // attatch the villager to this player
         if(villager1->playerData->isCarried == FALSE){
-            debugf("OnBucketTrigger: carry villager \n");
+            //debugf("OnBucketTrigger: carry villager \n");
             playerData2->carryingEntity = villager1->id_tag;
             villager1->mesh->material.textureID = godEntity->mesh->material.textureID;
             playerData2->isCarrying = TRUE;
             // play sound
-		    AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
+		    //AF_Audio_Play(laserSoundEntity->audioSource, 0.5f, FALSE);
         }
 }
 
@@ -1269,6 +1285,12 @@ void RenderGameOverScreen(AF_Input* _input){
     }
 
     // if player presses start button. Restart the game
+}
+
+void PlayMusic(){
+    //xm64player_set_vol (&xm, 1.0f);
+    xm64player_open(&xm, cur_rom);
+	xm64player_play(&xm, 2);
 }
 
 void Game_Shutdown(void){

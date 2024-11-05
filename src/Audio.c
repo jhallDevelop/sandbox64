@@ -12,3 +12,4 @@ void AF_Audio_Play(AF_CAudioSource* _audioSource, float _volume, BOOL _isLooping
     wav64_play((wav64_t*)_audioSource->clipData, _audioSource->channel);
 	mixer_ch_set_vol(_audioSource->channel, _volume, _volume);
 }
+
