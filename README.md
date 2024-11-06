@@ -1,10 +1,12 @@
 # sandbox64
-Sandbox area to run experiments using libdragon for n64 game development  
+Sandbox area to run experiments using libdragon for n64 game development.  
+This project was used in the Griffith University 24 Hour GameJam to create the multiplayer prototype "Old Gods"
 FEATURES:  
- - 3D rendering
+ - 3D rendering primatives
  - Basic Rigidbody Collisions and Physics
+ - Multiplayer inputs, and basic gameplay
  - Sound
- - Font
+ - Font and sprite rendering
 [![Project Screenshot](./video/gfs_gamejam_2024/10_oldGods64_010.png)](./video/gfs_gamejam_2024/10_oldGods64_830am.mov)  
 
 
