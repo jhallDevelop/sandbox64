@@ -319,8 +319,8 @@ Keyframe* get_end_keyframe(Animation* _animation, int boneIndex, AF_FLOAT time) 
 // Function to build the transformation matrix
 Mat4 build_transform_matrix(Vec3 position, Vec4 rotation, Vec3 scale) {
     Mat4 transMat = translation_matrix(position);
-    Mat4 rotMat = quat_to_rotation_matrix(rotation);
-    Mat4 scaleMat = scale_matrix(scale);
+    //Mat4 rotMat = quat_to_rotation_matrix(rotation);
+    //Mat4 scaleMat = scale_matrix(scale);
 
     // Order of transformations: Scale -> Rotate -> Translate
     Mat4 transform = transMat;//Mat4_MULT_M4(transMat, Mat4_MULT_M4(rotMat, scaleMat));
@@ -448,9 +448,9 @@ void applyBoneTransformation(Mat4 boneMatrix,float _time) {
     
     
     // Extract translation (assuming row-major order)
-    float tx = boneMatrix.rows[3].x; // element (3, 0) in the 4x4 matrix
-    float ty = boneMatrix.rows[3].y; // element (3, 1)
-    float tz = boneMatrix.rows[3].z; // element (3, 2)
+    //float tx = boneMatrix.rows[3].x; // element (3, 0) in the 4x4 matrix
+    //float ty = boneMatrix.rows[3].y; // element (3, 1)
+    //float tz = boneMatrix.rows[3].z; // element (3, 2)
 
     //float flatMatrix[16]; // assuming boneMatrix is properly initialized elsewhere
     //Mat4_To_Float_Array(boneMatrix, flatMatrix);

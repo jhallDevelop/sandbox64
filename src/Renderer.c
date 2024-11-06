@@ -39,9 +39,58 @@ static const GLfloat environment_color[] = { 0.2f, 0.2f, 0.2f, 1.f };
 static const GLfloat ambientLight[] = {0.75f, 0.75f, 0.75f, 1.0f};  // R, G, B, A
 
 
+// Textures
+#define TEXTURE_COUNT 10
+static GLuint textures[TEXTURE_COUNT];
+static const char *texture_path[TEXTURE_COUNT] = {
+    "rom:/green.sprite",        // 0 player 1
+    "rom:/red.sprite",          // 1 player 2
+    "rom:/orange.sprite",       // 2 player 3
+    "rom:/purple.sprite",       // 3 player 4
+    "rom:/grey.sprite",         // 4 god
+    "rom:/diamond0.sprite",     // 5 bucket
+    "rom:/triangle0.sprite",    // 6 villages
+    "rom:/checker.sprite",       // 7 level
+    "rom:/dark.sprite",         // 8 level
+    "rom:/god.sprite"           // 9 god
+
+};
+static sprite_t *sprites[TEXTURE_COUNT];
+
 // forward declare
 void InfrequenceGLEnable(void);
 void RenderMesh(AF_CMesh* _mesh, AF_CTransform3D* _transform, float _dt);
+
+
+
+
+uint32_t AF_LoadTexture(const char* _texturePath){
+    sprite_t* textureData;
+    textureData = sprite_load(_texturePath);
+    if(textureData == NULL)
+    {
+        debugf("Renderer:Init: Failed to load texture\n");
+    }
+
+    GLuint textureID = 0;
+    glGenTextures(1, &textureID);
+    debugf("defaultTextureID %li \n", textureID);
+    if(textureID == 0)
+    {
+        debugf("Renderer:Init: Failed to create texture buffer in glGenTextures\n");
+    }
+
+    // Default texture
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);  
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    // Bind texture to textureData and set texture parameters
+    glSpriteTextureN64(GL_TEXTURE_2D, textureData, &(rdpq_texparms_t){.s.repeats = REPEAT_INFINITE, .t.repeats = REPEAT_INFINITE});
+    return (uint32_t)textureID;
+}
+
+
 // Init Rendering
 void AF_Renderer_Init(AF_ECS* _ecs){
 
@@ -68,7 +117,7 @@ void AF_Renderer_Init(AF_ECS* _ecs){
 
     // ======== Camera ==========
     // Setup camera things
-    camera.distance = -12.0f;
+    camera.distance = -21.0f;
     camera.rotation = 0.0f;
     float aspect_ratio = (float)display_get_width() / (float)display_get_height();
     float near_plane = 1.0f;
@@ -76,6 +125,7 @@ void AF_Renderer_Init(AF_ECS* _ecs){
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
+    //glOrtho( -10, 10, -10, 10, -10, 10 );
     glFrustum(-near_plane*aspect_ratio, near_plane*aspect_ratio, -near_plane, near_plane, near_plane, far_plane);
 
     // Retrieve the projection matrix
@@ -127,16 +177,12 @@ void AF_Renderer_Init(AF_ECS* _ecs){
 
     
 
-    /*
-    for (uint32_t i = 0; i < 4; i++)
+    // Textures
+    for (uint32_t i = 0; i < TEXTURE_COUNT; i++)
     {
-        glBindTexture(GL_TEXTURE_2D, textures[i]);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
-
-        glSpriteTextureN64(GL_TEXTURE_2D, sprites[i], &(rdpq_texparms_t){.s.repeats = REPEAT_INFINITE, .t.repeats = REPEAT_INFINITE});
-    }*/
+        sprites[i] = sprite_load(texture_path[i]);
+    }
+    
 
     // ===========Primatives and Mesh==============
     // Cube
@@ -158,13 +204,28 @@ void AF_Renderer_Init(AF_ECS* _ecs){
     // =========Textures==================
     glEnable(GL_MULTISAMPLE_ARB);
 
-    
+    glGenTextures(TEXTURE_COUNT, textures);
 
     #if 0
     GLenum min_filter = GL_LINEAR_MIPMAP_LINEAR;
     #else
-    GLenum min_filter = GL_LINEAR;
+        GLenum min_filter = GL_LINEAR;
     #endif
+    
+    for (uint32_t i = 0; i < TEXTURE_COUNT; i++)
+    {
+        glBindTexture(GL_TEXTURE_2D, textures[i]);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
+
+        glSpriteTextureN64(GL_TEXTURE_2D, sprites[i], &(rdpq_texparms_t){.s.repeats = REPEAT_INFINITE, .t.repeats = REPEAT_INFINITE});
+    }/**/
+
+    
+
+
+    // ===== basic Texture ====
 
     
     sprite_t* textureData;
@@ -176,17 +237,27 @@ void AF_Renderer_Init(AF_ECS* _ecs){
 
     GLuint textureID = 0;
     glGenTextures(1, &textureID);
-    
+    debugf("defaultTextureID %li \n", textureID);
     if(textureID == 0)
     {
         debugf("Renderer:Init: Failed to create texture buffer in glGenTextures\n");
     }
+
+    
+
+
+
+
+
+
+
     // Check for OpenGL errors
     GLenum error = glGetError();
     if (error != GL_NO_ERROR) {
         debugf("OpenGL Error after glGenTextures: %u\n", (unsigned int)error);
     }
 
+    // Default texture
     glBindTexture(GL_TEXTURE_2D, textureID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);  
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -194,12 +265,25 @@ void AF_Renderer_Init(AF_ECS* _ecs){
     // Bind texture to textureData and set texture parameters
     glSpriteTextureN64(GL_TEXTURE_2D, textureData, &(rdpq_texparms_t){.s.repeats = REPEAT_INFINITE, .t.repeats = REPEAT_INFINITE});
 
+   
 
     for(int i = 0; i < _ecs->entitiesCount; ++i){
         AF_CMesh* mesh = &_ecs->meshes[i];
         if((AF_Component_GetHas(mesh->enabled) == TRUE) && (AF_Component_GetEnabled(mesh->enabled) == TRUE)){
-            _ecs->sprites->spriteData = (void*)textureData;
-            mesh->material.textureID = (uint32_t)textureID;
+            //_ecs->sprites->spriteData = (void*)textureData;
+            /*
+            if(mesh->material.textureID == 0){
+                mesh->material.textureID = textures[0];
+            }else if(mesh->material.textureID == 1){
+                mesh->material.textureID = textures[1];
+            }
+            else if(mesh->material.textureID == 2){
+                mesh->material.textureID = textures[2];
+            }
+            else if(mesh->material.textureID == 3){
+                mesh->material.textureID = textures[3];
+            }*/
+            //mesh->material.textureID = 0;//(uint32_t)textureID;
         }
     }
 
@@ -210,6 +294,8 @@ void AF_Renderer_Init(AF_ECS* _ecs){
 
     rspq_profile_start();
 }
+
+
 
 
 // Update Renderer
@@ -258,9 +344,10 @@ void AF_Renderer_Update(AF_ECS* _ecs, AF_Time* _time){
         
         if((AF_Component_GetHas(mesh->enabled) == TRUE) && (AF_Component_GetEnabled(mesh->enabled) == TRUE)){
             // load the texture
-            if(mesh->material.textureID != 0){
-                glBindTexture(GL_TEXTURE_2D, mesh->material.textureID);
-            }
+            //if(mesh->material.textureID != 0){
+                //debugf("renderer pick textureid %lu ID: %lu \n", mesh->material.textureID, textures[mesh->material.textureID]);
+                glBindTexture(GL_TEXTURE_2D, textures[mesh->material.textureID]);
+            //}
             
             RenderMesh(mesh, &_ecs->transforms[i], _time->currentFrame);
              AF_CCollider* collider = &_ecs->colliders[i];
@@ -310,13 +397,17 @@ void RenderMesh(AF_CMesh* _mesh, AF_CTransform3D* _transform, float _dt){
         //render debug
     }
     // Render mesh
-
+    int isAnimating = 0;
     // Render Shapes
     switch (_mesh->meshType)
     {
     case AF_MESH_TYPE_CUBE:
         /* code */
-        render_cube(_transform);
+        
+        if(_mesh->isAnimating == TRUE){
+            isAnimating = 1;
+        }
+        render_cube(_transform, isAnimating, _dt);
         
         break;
     case AF_MESH_TYPE_PLANE:
@@ -326,7 +417,10 @@ void RenderMesh(AF_CMesh* _mesh, AF_CTransform3D* _transform, float _dt){
 
     case AF_MESH_TYPE_SPHERE:
         /* code */
-        render_sphere(_transform);
+        if(_mesh->isAnimating == TRUE){
+            isAnimating = 1;
+        }
+        render_sphere(_transform, isAnimating, _dt);
     break;
 
     case AF_MESH_TYPE_MESH:
@@ -346,7 +440,7 @@ void AF_Renderer_Finish(){
     rdpq_detach_show();
 
     
-
+    
     // For debugging
     if (DEBUG_RDP){
         rspq_profile_next_frame();
@@ -358,6 +452,7 @@ void AF_Renderer_Finish(){
         }
         rspq_wait();
     }
+    
     
 }
 

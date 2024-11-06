@@ -5,6 +5,16 @@
 #include "AF_Util.h"
 
 
+void AF_LoadFont(int _id, const char* _path, float _color[4]){
+    rdpq_font_t *fnt1 = rdpq_font_load(_path);
+        rdpq_font_style(fnt1, 0, &(rdpq_fontstyle_t){
+            .color = RGBA32(_color[0],_color[1], _color[2], 0xFF),//text->textColor[0],text->textColor[1], text->textColor[2], text->textColor[3]), //0xED, 0xAE, 0x49, 0xFF),
+        });
+       
+        rdpq_text_register_font(_id, fnt1);
+}
+
+
 /*
 ====================
 AF_UI_INIT
@@ -18,6 +28,7 @@ void AF_UI_Init(AF_ECS* _ecs){
 		return;
 	} 
 
+    /*
 	debugf("InitTextRendering\n");
 
     for(int i = 0; i < _ecs->entitiesCount; i++){
@@ -39,6 +50,7 @@ void AF_UI_Init(AF_ECS* _ecs){
             continue;
         }
         debugf("AF_UI_INIT: loading font %i: %s enabled: %d has: %d \n",text->fontID, text->fontPath, hasFlag, enabledFlag);
+        // if font already is loaded, don't load it again
 
         rdpq_font_t *fnt1 = rdpq_font_load(text->fontPath);
         rdpq_font_style(fnt1, 0, &(rdpq_fontstyle_t){
@@ -50,8 +62,12 @@ void AF_UI_Init(AF_ECS* _ecs){
         // Setup sprite
         
     }
+    */
     
 }
+
+
+
 
 /*
 ====================
@@ -76,7 +92,7 @@ Render all UI elements like text
 void AF_UI_RendererSprite_Update(AF_CSprite* _sprite, AF_Time* _time){
     // Find components that are text components
     // skip components that don't have the text component
-    int hasFlag = AF_Component_GetHas(_sprite->enabled);
+    //int hasFlag = AF_Component_GetHas(_sprite->enabled);
     int enabledFlag = AF_Component_GetEnabled(_sprite->enabled);
     // skip components that don't have the text component
     if(AF_Component_GetHas(enabledFlag) == 0){
@@ -127,7 +143,7 @@ void AF_UI_RendererSprite_Update(AF_CSprite* _sprite, AF_Time* _time){
 
 
     
-    int horizontalFrame = 0;
+    //int horizontalFrame = 0;
     //Draw knight sprite
     rdpq_sprite_blit((sprite_t*)_sprite->spriteData, _sprite->pos.x, _sprite->pos.y, &(rdpq_blitparms_t){
             .s0 = _sprite->currentFrame * _sprite->size.x,//frame*ANIM_FRAME_W, //Extract correct sprite from sheet
@@ -150,10 +166,14 @@ void AF_UI_RendererText_Update(AF_CText* _text){
     
     // Find components that are text components
     // skip components that don't have the text component
-    int hasFlag = AF_Component_GetHas(_text->enabled);
+    //int hasFlag = AF_Component_GetHas(_text->enabled);
     int enabledFlag = AF_Component_GetEnabled(_text->enabled);
     // skip components that don't have the text component
     if(AF_Component_GetHas(enabledFlag) == 0){
+        return;
+    }
+
+    if(_text->isShowing == FALSE){
         return;
     }
 
@@ -161,22 +181,35 @@ void AF_UI_RendererText_Update(AF_CText* _text){
     if(_text->fontPath == NULL || AF_STRING_IS_EMPTY(_text->text) == TRUE){
         return;
     }
+    // if text needs updating, rebuild, otherwise skip
+    if(_text->isDirty == TRUE){
+        int nbytes = strlen(_text->text);
+        rdpq_paragraph_free((rdpq_paragraph_t*)_text->textData);
+        rdpq_paragraph_t* par = rdpq_paragraph_build(&(rdpq_textparms_t){
+            // .line_spacing = -3,
+            .align = ALIGN_LEFT,
+            .valign = VALIGN_CENTER,
+            .width = _text->textBounds.x,
+            .height = _text->textBounds.y,
+            .wrap = WRAP_WORD,
+        }, _text->fontID, _text->text, &nbytes);
+        _text->textData = (void*) par;
+        _text->isDirty = FALSE;
+    }
 
     
-    int nbytes = strlen(_text->text);
-    rdpq_paragraph_t* par = rdpq_paragraph_build(&(rdpq_textparms_t){
-        // .line_spacing = -3,
-        .align = ALIGN_LEFT,
-        .valign = VALIGN_CENTER,
-        .width = _text->textBounds.x,
-        .height = _text->textBounds.y,
-        .wrap = WRAP_WORD,
-    }, _text->fontID, _text->text, &nbytes);
+    if(_text->textData == NULL){
+        return;
+    }
+    rdpq_paragraph_render((rdpq_paragraph_t*)_text->textData, _text->screenPos.x, _text->screenPos.y);
     
-    rdpq_paragraph_render(par, _text->screenPos.x, _text->screenPos.y);
-    rdpq_paragraph_free(par);
+
+    //rdpq_paragraph_render(par, _text->screenPos.x, _text->screenPos.y);
+    //rdpq_paragraph_free(par);
 
 }
+
+
 
 /*
 ====================

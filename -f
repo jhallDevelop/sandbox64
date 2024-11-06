@@ -1,0 +1,7 @@
+
+sandbox64 on  main [$!] 
+❯ :x
+zsh: command not found: :x
+
+sandbox64 on  main [$!] 
+❯ 
