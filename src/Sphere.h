@@ -9,7 +9,7 @@
 #include "vertex.h"
 #include "ECS/Components/AF_CTransform3D.h"
 
-#define SPHERE_RADIUS       5.0f
+#define SPHERE_RADIUS       1.0f
 #define SPHERE_MIN_RINGS    4
 #define SPHERE_MAX_RINGS    64
 #define SPHERE_MIN_SEGMENTS 4

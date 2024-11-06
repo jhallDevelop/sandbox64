@@ -1,7 +1,7 @@
 /*================
 Implementation file for AF_Input
 Specific to n64
-Input contains everything needed to collect input from the system and feed it back into the game
+Input contains everything needed to collect input from the system from Libdragon and feed it back into the game via an AF_Input struct
 =================*/
 #include <libdragon.h>
 #include "AF_Input.h"
@@ -137,6 +137,11 @@ void AF_Input_Update(AF_Input* _input){
 
 }
 
+/*
+AF_Input_Shutdown
+Implementation of shutdown
+Does nothing for now
+*/
 void AF_Input_Shutdown(void){
 	debugf("Input Shutdown\n");
 }
