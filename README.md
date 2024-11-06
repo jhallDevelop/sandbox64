@@ -5,7 +5,7 @@ FEATURES:
  - Basic Rigidbody Collisions and Physics
  - Sound
  - Font
-[![Project Screenshot](./video/sandbox64_30_10_24.png)](./video/LinearCollision_Velocity_gravity_27_10_24.mov)  
+[![Project Screenshot](./video/gfs_gamejam_2024/10_oldGods64_010.png)](./video/gfs_gamejam_2024/10_oldGods64_830am.mov)  
 
 
 ## Installation Instructions  
